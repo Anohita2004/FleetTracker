@@ -31,7 +31,6 @@ service TrackerService @(path : '/tracker') {
     email,
     phone,
     status,
-    temporaryPassword,
     admin,
     trips
   };

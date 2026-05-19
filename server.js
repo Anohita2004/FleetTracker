@@ -11,7 +11,9 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const nowISO = () => new Date().toISOString();
 const PASSWORD_MIN_LENGTH = 8;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-const sessionSecret = process.env.JWT_SECRET_KEY || process.env.SESSION_SECRET || "location-tracker-driver-session-secret";
+const DUMMY_BCRYPT_HASH = "$2b$10$hYQfIctt8V3M9zb5z/JEuOsj4dHww64JfQ3MNCWiA3f9aULphQxse";
+const configuredSessionSecret = process.env.JWT_SECRET_KEY || process.env.SESSION_SECRET;
+const sessionSecret = configuredSessionSecret || (process.env.NODE_ENV === "production" ? null : "driver-session-dev-secret");
 const hashToken = (value) => crypto.createHash("sha256").update(String(value || "")).digest("hex");
 const getSessionTokenHash = (req) => hashToken(`${req.sessionID}:${sessionSecret}`);
 const isFutureDate = (value) => value && new Date(value).getTime() > Date.now();
@@ -30,13 +32,17 @@ const getAuthService = () => {
 };
 
 cds.on("bootstrap", (app) => {
+  if (!sessionSecret) {
+    throw new Error("SESSION_SECRET or JWT_SECRET_KEY must be configured in production for driver sessions.");
+  }
+
   app.use(session({
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       maxAge: SESSION_TTL_MS
     }
@@ -101,6 +107,14 @@ cds.on("bootstrap", (app) => {
     }
   };
 
+  const requireDriverCsrf = (req, res, next) => {
+    const token = req.headers["x-driver-csrf-token"];
+    if (!token || token !== req.session?.driverCsrfToken) {
+      return res.status(403).json({ error: "Invalid or missing CSRF token" });
+    }
+    return next();
+  };
+
   app.post("/drivers/login", async (req, res, next) => {
     try {
       const email = normalizeEmail(req.body?.email);
@@ -115,12 +129,9 @@ cds.on("bootstrap", (app) => {
 
       const db = await dbPromise;
       const driver = await getDriverByEmail(db, email);
-      if (!driver || driver.status !== "ACTIVE" || !driver.passwordHash) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-
-      const passwordOk = await bcrypt.compare(password, driver.passwordHash);
-      if (!passwordOk) {
+      const hashToCompare = driver?.passwordHash || DUMMY_BCRYPT_HASH;
+      const passwordOk = await bcrypt.compare(password, hashToCompare);
+      if (!driver || driver.status !== "ACTIVE" || !driver.passwordHash || !passwordOk) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -131,6 +142,7 @@ cds.on("bootstrap", (app) => {
       req.session.driverId = driver.ID;
       req.session.driverEmail = driver.email;
       req.session.loggedInAt = nowISO();
+      req.session.driverCsrfToken = crypto.randomBytes(32).toString("hex");
 
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
       const sessionTokenHash = getSessionTokenHash(req);
@@ -152,14 +164,15 @@ cds.on("bootstrap", (app) => {
           name: driver.name,
           email: driver.email,
           status: driver.status
-        }
+        },
+        csrfToken: req.session.driverCsrfToken
       });
     } catch (error) {
       return next(error);
     }
   });
 
-  app.post("/drivers/logout", requireDriverSession, async (req, res, next) => {
+  app.post("/drivers/logout", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const sessionTokenHash = getSessionTokenHash(req);
@@ -181,7 +194,10 @@ cds.on("bootstrap", (app) => {
   });
 
   app.get("/drivers/me", requireDriverSession, async (req, res) => {
-    res.json({ driver: req.driver });
+    if (!req.session.driverCsrfToken) {
+      req.session.driverCsrfToken = crypto.randomBytes(32).toString("hex");
+    }
+    res.json({ driver: req.driver, csrfToken: req.session.driverCsrfToken });
   });
 
   app.get("/drivers/activeTrip", requireDriverSession, async (req, res, next) => {
@@ -194,7 +210,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/startTrip", requireDriverSession, async (req, res, next) => {
+  app.post("/drivers/startTrip", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const activeTrip = await getActiveTrip(db, req.driver.ID);
@@ -217,7 +233,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/stopTrip", requireDriverSession, async (req, res, next) => {
+  app.post("/drivers/stopTrip", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
     try {
       const tripId = req.body?.tripId;
       if (!tripId) {
@@ -246,7 +262,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/recordLocation", requireDriverSession, async (req, res, next) => {
+  app.post("/drivers/recordLocation", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
     try {
       const { tripId, latitude, longitude } = req.body || {};
       if (!tripId) {

@@ -299,12 +299,18 @@ sap.ui.define([
     },
 
     _post: async function (url, payload) {
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      };
+      const csrfToken = this._viewModel.getProperty("/driverCsrfToken");
+      if (csrfToken) {
+        headers["X-Driver-CSRF-Token"] = csrfToken;
+      }
+
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
+        headers,
         body: JSON.stringify(payload)
       });
 
@@ -387,6 +393,7 @@ sap.ui.define([
 
         this._viewModel.setProperty("/driverAuthenticated", true);
         this._viewModel.setProperty("/driverProfile", response.driver || null);
+        this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
         this._viewModel.setProperty("/driverLogin/password", "");
         this._viewModel.setProperty("/statusText", "Driver login successful");
 
@@ -415,6 +422,7 @@ sap.ui.define([
         const response = await this._get("/drivers/me");
         this._viewModel.setProperty("/driverAuthenticated", true);
         this._viewModel.setProperty("/driverProfile", response.driver || null);
+        this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
         this._viewModel.setProperty("/statusText", "Driver session restored");
         await this._loadActiveTrip();
         await this._refreshMetrics();
@@ -432,6 +440,7 @@ sap.ui.define([
 
       this._viewModel.setProperty("/driverAuthenticated", false);
       this._viewModel.setProperty("/driverProfile", null);
+      this._viewModel.setProperty("/driverCsrfToken", null);
       this._viewModel.setProperty("/tracking", false);
       this._viewModel.setProperty("/currentTrip", null);
       this._viewModel.setProperty("/lastPoint", null);

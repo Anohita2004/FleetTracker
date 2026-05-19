@@ -19,7 +19,7 @@
                   <Title text="Driver Login" level="H5" />
                   <Label text="Email" />
                   <Input value="{view>/driverLogin/email}" type="Email" enabled="{= !${view>/driverAuthenticated} }" />
-                  <Label text="Temporary Password" />
+                  <Label text="Password" />
                   <Input value="{view>/driverLogin/password}" type="Password" enabled="{= !${view>/driverAuthenticated} }" />
                   <HBox class="sapUiSmallMarginTop" justifyContent="Start" alignItems="Center">
                     <Button text="Login" type="Emphasized" press=".onDriverLogin" visible="{= !${view>/driverAuthenticated} }" />

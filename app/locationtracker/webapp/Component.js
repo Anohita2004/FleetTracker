@@ -16,6 +16,7 @@ sap.ui.define([
           busy: false,
           driverAuthenticated: false,
           driverProfile: null,
+          driverCsrfToken: null,
           driverLogin: {
             email: "",
             password: ""
