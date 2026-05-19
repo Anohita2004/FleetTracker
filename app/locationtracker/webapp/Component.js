@@ -12,9 +12,15 @@ sap.ui.define([
     init: function () {
       UIComponent.prototype.init.apply(this, arguments);
 
-      this.setModel(new JSONModel({
-        busy: false,
-        tracking: false,
+        this.setModel(new JSONModel({
+          busy: false,
+          driverAuthenticated: false,
+          driverProfile: null,
+          driverLogin: {
+            email: "",
+            password: ""
+          },
+          tracking: false,
         currentTrip: null,
         totalPoints: 0,
         lastPoint: null,

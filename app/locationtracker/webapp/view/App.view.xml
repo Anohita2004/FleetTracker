@@ -15,10 +15,21 @@
                   <Title text="Track every trip in real time" level="H2" />
                   <Text text="Monitor live coordinates, route quality, and operational KPIs from one dashboard." class="heroSubtitle" />
                 </VBox>
+                <VBox width="22rem">
+                  <Title text="Driver Login" level="H5" />
+                  <Label text="Email" />
+                  <Input value="{view>/driverLogin/email}" type="Email" enabled="{= !${view>/driverAuthenticated} }" />
+                  <Label text="Temporary Password" />
+                  <Input value="{view>/driverLogin/password}" type="Password" enabled="{= !${view>/driverAuthenticated} }" />
+                  <HBox class="sapUiSmallMarginTop" justifyContent="Start" alignItems="Center">
+                    <Button text="Login" type="Emphasized" press=".onDriverLogin" visible="{= !${view>/driverAuthenticated} }" />
+                    <Button text="Logout" type="Transparent" press=".onDriverLogout" visible="{view>/driverAuthenticated}" class="sapUiTinyMarginBegin" />
+                  </HBox>
+                </VBox>
                 <HBox wrap="Wrap" class="buttonCluster">
-                  <Button text="Start Trip" type="Emphasized" press=".onStartTracking" visible="{= !${view>/tracking} }" />
-                  <Button text="Stop Trip" type="Reject" press=".onStopTracking" visible="{view>/tracking}" />
-                  <Button text="Refresh Path" icon="sap-icon://refresh" press=".onRefreshPath" />
+                  <Button text="Start Trip" type="Emphasized" press=".onStartTracking" visible="{= !${view>/tracking} }" enabled="{view>/driverAuthenticated}" />
+                  <Button text="Stop Trip" type="Reject" press=".onStopTracking" visible="{view>/tracking}" enabled="{view>/driverAuthenticated}" />
+                  <Button text="Refresh Path" icon="sap-icon://refresh" press=".onRefreshPath" enabled="{view>/driverAuthenticated}" />
                 </HBox>
               </HBox>
               <HBox class="statusStrip" wrap="Wrap" alignItems="Center">

@@ -21,7 +21,20 @@ service TrackerService @(path : '/tracker') {
     { grant: 'READ', to: ['Driver', 'FleetAdmin'] },
     { grant: ['CREATE', 'UPDATE', 'DELETE'], to: 'FleetAdmin' }
   ]
-  entity Drivers as projection on tracker.Drivers;
+  entity Drivers as projection on tracker.Drivers {
+    ID,
+    createdAt,
+    createdBy,
+    modifiedAt,
+    modifiedBy,
+    name,
+    email,
+    phone,
+    status,
+    temporaryPassword,
+    admin,
+    trips
+  };
 
   @restrict: [
     { grant: 'READ', to: ['Driver', 'FleetAdmin'] },
@@ -46,9 +59,10 @@ service TrackerService @(path : '/tracker') {
 
   @requires: 'FleetAdmin'
   action createDriver(
-    name  : String,
-    email : String,
-    phone : String
+    name     : String,
+    email    : String,
+    phone    : String,
+    password : String
   ) returns Drivers;
 
   @requires: 'Driver'

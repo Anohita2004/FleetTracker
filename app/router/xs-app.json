@@ -3,6 +3,20 @@
   "authenticationMethod": "route",
   "routes": [
     {
+      "source": "^/drivers/(.*)$",
+      "target": "/drivers/$1",
+      "destination": "srv-api",
+      "authenticationType": "none",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/drivers$",
+      "target": "/drivers",
+      "destination": "srv-api",
+      "authenticationType": "none",
+      "csrfProtection": false
+    },
+    {
       "source": "^/?tracker/(.*)$",
       "target": "/tracker/$1",
       "destination": "srv-api",

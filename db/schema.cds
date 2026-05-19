@@ -6,15 +6,18 @@ entity Admins : cuid, managed {
   drivers : Composition of many Drivers on drivers.admin = $self;
 }
 entity Drivers : cuid, managed {
-  name   : String(120);
-  email  : String(255);
-  phone  : String(40);
-  status : String(20) enum {
+  name               : String(120);
+  email              : String(255);
+  phone              : String(40);
+  passwordHash       : String(255);
+  temporaryPassword  : Boolean default true;
+  status             : String(20) enum {
     ACTIVE;
     INACTIVE;
   } default 'ACTIVE';
-  admin  : Association to Admins not null;
-  trips  : Composition of many Trips on trips.driver = $self;
+  admin              : Association to Admins not null;
+  trips              : Composition of many Trips on trips.driver = $self;
+  sessions           : Composition of many DriverSessions on sessions.driver = $self;
 }
 entity Trips : cuid, managed {
   title     : String(120);
@@ -65,4 +68,12 @@ entity MetricSnapshots : cuid, managed {
   avgSessionDurationMs : Decimal(15, 2);
   ingestSuccessRate    : Decimal(5, 2);
   avgIngestLatencyMs   : Decimal(9, 2);
+}
+
+entity DriverSessions : cuid, managed {
+  driver           : Association to Drivers not null;
+  sessionTokenHash : String(255) not null;
+  expiresAt        : Timestamp not null;
+  lastAccessedAt   : Timestamp;
+  revoked          : Boolean default false;
 }

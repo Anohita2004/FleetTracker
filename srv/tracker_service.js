@@ -1,6 +1,8 @@
 const cds = require("@sap/cds");
+const bcrypt = require("bcrypt");
 const { SELECT, INSERT, UPDATE } = cds.ql;
 const SNAPSHOT_INTERVAL_MS = 15 * 60 * 1000;
+const PASSWORD_SALT_ROUNDS = 10;
 
 module.exports = cds.service.impl(function () {
   const { Admins, Drivers, Trips, LocationPoints, MetricSnapshots } = this.entities;
@@ -139,7 +141,13 @@ module.exports = cds.service.impl(function () {
     if (!admin) return req.reject(403, "Only fleet admins can create drivers");
 
     const email = normalizeEmail(req.data.email);
+    const password = String(req.data.password || "");
     if (!email) return req.reject(400, "Driver email is required");
+    if (!password || password.length < 8) {
+      return req.reject(400, "Driver password is required and must be at least 8 characters");
+    }
+
+    const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
 
     const existingDriver = await getDriverByEmail(email);
     if (existingDriver && existingDriver.admin_ID !== admin.ID) {
@@ -151,6 +159,8 @@ module.exports = cds.service.impl(function () {
         .set({
           name: req.data.name || existingDriver.name,
           phone: req.data.phone || existingDriver.phone,
+          passwordHash,
+          temporaryPassword: true,
           status: "ACTIVE"
         })
         .where({ ID: existingDriver.ID });
@@ -162,6 +172,8 @@ module.exports = cds.service.impl(function () {
       name: req.data.name || email,
       email,
       phone: req.data.phone || null,
+      passwordHash,
+      temporaryPassword: true,
       status: "ACTIVE",
       admin_ID: admin.ID
     };
