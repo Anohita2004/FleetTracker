@@ -22,8 +22,7 @@ sap.ui.define([
         }.bind(this)
       });
 
-      this._loadActiveTrip();
-      this._refreshMetrics();
+      this._restoreDriverSession();
     },
 
     onAfterRendering: function () {
@@ -31,6 +30,11 @@ sap.ui.define([
     },
 
     onStartTracking: async function () {
+      if (!this._viewModel.getProperty("/driverAuthenticated")) {
+        MessageBox.error("Please log in as a driver first.");
+        return;
+      }
+
       if (!navigator.geolocation) {
         MessageBox.error("This browser does not support geolocation.");
         return;
@@ -40,7 +44,7 @@ sap.ui.define([
         let trip = this._viewModel.getProperty("/currentTrip");
 
         if (!trip || trip.status !== "ACTIVE") {
-          trip = await this._post("/tracker/startTrip", {
+          trip = await this._post("/drivers/startTrip", {
             title: "Trip " + new Date().toLocaleString()
           });
           this._viewModel.setProperty("/currentTrip", trip);
@@ -71,6 +75,11 @@ sap.ui.define([
     },
 
     onStopTracking: async function () {
+      if (!this._viewModel.getProperty("/driverAuthenticated")) {
+        MessageBox.error("Please log in as a driver first.");
+        return;
+      }
+
       const trip = this._viewModel.getProperty("/currentTrip");
       if (!trip) {
         return;
@@ -82,7 +91,7 @@ sap.ui.define([
       }
 
       try {
-        const stoppedTrip = await this._post("/tracker/stopTrip", { tripId: trip.ID });
+        const stoppedTrip = await this._post("/drivers/stopTrip", { tripId: trip.ID });
         this._viewModel.setProperty("/currentTrip", stoppedTrip);
         this._viewModel.setProperty("/tracking", false);
         this._viewModel.setProperty("/statusText", "Tracking stopped");
@@ -94,6 +103,10 @@ sap.ui.define([
     },
 
     onRefreshPath: async function () {
+      if (!this._viewModel.getProperty("/driverAuthenticated")) {
+        return;
+      }
+
       const trip = this._viewModel.getProperty("/currentTrip");
       this._ensureMap();
 
@@ -105,7 +118,7 @@ sap.ui.define([
       }
 
       try {
-        const points = await this._get("/tracker/path/" + trip.ID);
+        const points = await this._get("/drivers/path/" + trip.ID);
         this._points = (points.value || []).map(function (point) {
           return [Number(point.latitude), Number(point.longitude)];
         });
@@ -122,7 +135,7 @@ sap.ui.define([
 
     _loadActiveTrip: async function () {
       try {
-        const trip = await this._get("/tracker/activeTrip()");
+        const trip = await this._get("/drivers/activeTrip");
         if (trip && trip.ID) {
           this._viewModel.setProperty("/currentTrip", trip);
           this._viewModel.setProperty("/statusText", "Active trip restored");
@@ -154,8 +167,12 @@ sap.ui.define([
   };
 
   try {
+    if (!this._viewModel.getProperty("/driverAuthenticated")) {
+      return;
+    }
+
     const clientUpdateStart = this._getHighResTime();
-    const point = await this._post("/tracker/recordLocation", payload);
+    const point = await this._post("/drivers/recordLocation", payload);
     const latLng = [Number(point.latitude), Number(point.longitude)];
     this._points.push(latLng);
     this._viewModel.setProperty("/lastPoint", point);
@@ -282,12 +299,18 @@ sap.ui.define([
     },
 
     _post: async function (url, payload) {
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      };
+      const csrfToken = this._viewModel.getProperty("/driverCsrfToken");
+      if (csrfToken) {
+        headers["X-Driver-CSRF-Token"] = csrfToken;
+      }
+
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
+        headers,
         body: JSON.stringify(payload)
       });
 
@@ -309,7 +332,24 @@ sap.ui.define([
 
     _refreshMetrics: async function () {
       try {
-        const metrics = await this._get("/tracker/metrics()");
+        if (!this._viewModel.getProperty("/driverAuthenticated")) {
+          this._viewModel.setProperty("/metrics", Object.assign({}, this._viewModel.getProperty("/metrics"), {
+            generatedAt: null,
+            totalTrips: 0,
+            completedTrips: 0,
+            completionRate: 0,
+            avgPointsPerTrip: 0,
+            avgGpsAccuracy: 0,
+            avgSessionDurationMs: 0,
+            ingestSuccessRate: 0,
+            avgIngestLatencyMs: 0,
+            avgClientUpdateLatencyMs: 0,
+            latestClientUpdateLatencyMs: 0
+          }));
+          return;
+        }
+
+        const metrics = await this._get("/drivers/metrics");
         const averageClientLatency = this._clientUpdateLatencyMs.length
           ? this._clientUpdateLatencyMs.reduce(function (sum, latencyMs) { return sum + latencyMs; }, 0) / this._clientUpdateLatencyMs.length
           : 0;
@@ -340,6 +380,76 @@ sap.ui.define([
 
     _getHighResTime: function () {
       return window.performance && window.performance.now ? window.performance.now() : Date.now();
+    },
+
+    onDriverLogin: async function () {
+      const credentials = this._viewModel.getProperty("/driverLogin") || {};
+
+      try {
+        const response = await this._post("/drivers/login", {
+          email: credentials.email,
+          password: credentials.password
+        });
+
+        this._viewModel.setProperty("/driverAuthenticated", true);
+        this._viewModel.setProperty("/driverProfile", response.driver || null);
+        this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
+        this._viewModel.setProperty("/driverLogin/password", "");
+        this._viewModel.setProperty("/statusText", "Driver login successful");
+
+        await this._loadActiveTrip();
+        await this._refreshMetrics();
+        MessageToast.show("Logged in as driver");
+      } catch (error) {
+        this._clearDriverSessionData();
+        MessageBox.error(error.message || "Driver login failed.");
+      }
+    },
+
+    onDriverLogout: async function () {
+      try {
+        await this._post("/drivers/logout", {});
+      } catch (error) {
+        // Continue logout cleanup on client even if session is already expired.
+      }
+
+      this._clearDriverSessionData();
+      MessageToast.show("Logged out");
+    },
+
+    _restoreDriverSession: async function () {
+      try {
+        const response = await this._get("/drivers/me");
+        this._viewModel.setProperty("/driverAuthenticated", true);
+        this._viewModel.setProperty("/driverProfile", response.driver || null);
+        this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
+        this._viewModel.setProperty("/statusText", "Driver session restored");
+        await this._loadActiveTrip();
+        await this._refreshMetrics();
+      } catch (error) {
+        this._clearDriverSessionData();
+        this._viewModel.setProperty("/statusText", "Please log in as driver");
+      }
+    },
+
+    _clearDriverSessionData: function () {
+      if (this._watchId !== null) {
+        navigator.geolocation.clearWatch(this._watchId);
+        this._watchId = null;
+      }
+
+      this._viewModel.setProperty("/driverAuthenticated", false);
+      this._viewModel.setProperty("/driverProfile", null);
+      this._viewModel.setProperty("/driverCsrfToken", null);
+      this._viewModel.setProperty("/tracking", false);
+      this._viewModel.setProperty("/currentTrip", null);
+      this._viewModel.setProperty("/lastPoint", null);
+      this._viewModel.setProperty("/totalPoints", 0);
+      this._viewModel.setProperty("/permissionText", "Awaiting browser location permission");
+      this._clientUpdateLatencyMs = [];
+      this._points = [];
+      this._syncPolyline();
+      this._refreshMetrics();
     }
   });
 });
