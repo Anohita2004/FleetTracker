@@ -12,8 +12,15 @@ const nowISO = () => new Date().toISOString();
 const PASSWORD_MIN_LENGTH = 8;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const DUMMY_BCRYPT_HASH = "$2b$10$hYQfIctt8V3M9zb5z/JEuOsj4dHww64JfQ3MNCWiA3f9aULphQxse";
-const configuredSessionSecret = process.env.JWT_SECRET_KEY || process.env.SESSION_SECRET;
-const sessionSecret = configuredSessionSecret || (process.env.NODE_ENV === "production" ? null : "driver-session-dev-secret");
+const resolveSessionSecret = () => {
+  const configuredSessionSecret = process.env.JWT_SECRET_KEY || process.env.SESSION_SECRET;
+  if (configuredSessionSecret) return configuredSessionSecret;
+  const xsuaaCredentials = cds.requires?.auth?.credentials;
+  const xsuaaSecret = xsuaaCredentials?.clientsecret || xsuaaCredentials?.clientSecret;
+  if (xsuaaSecret) return xsuaaSecret;
+  return process.env.NODE_ENV === "production" ? null : "driver-session-dev-secret";
+};
+let sessionSecret = null;
 const hashToken = (value) => crypto.createHash("sha256").update(String(value || "")).digest("hex");
 const getSessionTokenHash = (req) => hashToken(`${req.sessionID}:${sessionSecret}`);
 const isFutureDate = (value) => value && new Date(value).getTime() > Date.now();
@@ -32,6 +39,7 @@ const getAuthService = () => {
 };
 
 cds.on("bootstrap", (app) => {
+  sessionSecret = resolveSessionSecret();
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET or JWT_SECRET_KEY must be configured in production for driver sessions.");
   }
