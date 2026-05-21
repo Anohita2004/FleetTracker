@@ -3,15 +3,29 @@
   "authenticationMethod": "route",
   "routes": [
     {
-      "source": "^/drivers/(.*)$",
-      "target": "/drivers/$1",
+      "source": "^/drivers/login$",
+      "target": "/drivers/login",
       "destination": "srv-api",
       "authenticationType": "none",
       "csrfProtection": false
     },
     {
-      "source": "^/drivers$",
-      "target": "/drivers",
+      "source": "^/drivers/logout$",
+      "target": "/drivers/logout",
+      "destination": "srv-api",
+      "authenticationType": "none",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/drivers/me$",
+      "target": "/drivers/me",
+      "destination": "srv-api",
+      "authenticationType": "none",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/drivers/(.*)$",
+      "target": "/drivers/$1",
       "destination": "srv-api",
       "authenticationType": "none",
       "csrfProtection": false

@@ -1,8 +1,8 @@
 const cds = require("@sap/cds");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { SELECT, INSERT, UPDATE } = cds.ql;
 const SNAPSHOT_INTERVAL_MS = 15 * 60 * 1000;
-const PASSWORD_SALT_ROUNDS = 10;
+const PASSWORD_SALT_ROUNDS = 12;
 
 module.exports = cds.service.impl(function () {
   const { Admins, Drivers, Trips, LocationPoints, MetricSnapshots } = this.entities;
@@ -67,11 +67,25 @@ module.exports = cds.service.impl(function () {
 
   const requireDriverProfile = async (req) => {
     const driver = await getDriverByEmail(userId(req));
-    if (!driver || driver.status !== "ACTIVE") {
+    if (!driver || !driver.isActive) {
       return req.reject(403, "No active driver profile is assigned to this login");
     }
     return driver;
   };
+
+  const safeDriverColumns = [
+    "ID",
+    "createdAt",
+    "createdBy",
+    "modifiedAt",
+    "modifiedBy",
+    "name",
+    "email",
+    "vehicleId",
+    "phone",
+    "isActive",
+    "admin_ID"
+  ];
 
   const getActiveTrip = (driverId) =>
     SELECT.one.from(Trips)
@@ -130,7 +144,7 @@ module.exports = cds.service.impl(function () {
       email: normalizeEmail(userId(req)),
       name: userName(req),
       isAdmin: isAdmin(req),
-      isDriver: Boolean(driver && driver.status === "ACTIVE"),
+      isDriver: Boolean(driver && driver.isActive),
       adminId: admin?.ID || null,
       driverId: driver?.ID || null
     };
@@ -159,27 +173,55 @@ module.exports = cds.service.impl(function () {
         .set({
           name: req.data.name || existingDriver.name,
           phone: req.data.phone || existingDriver.phone,
+          vehicleId: req.data.vehicleId || existingDriver.vehicleId,
           passwordHash,
-          temporaryPassword: true,
-          status: "ACTIVE"
+          isActive: true
         })
         .where({ ID: existingDriver.ID });
-      return SELECT.one.from(Drivers).where({ ID: existingDriver.ID });
+      return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: existingDriver.ID });
     }
 
     const entry = {
       ID: cds.utils.uuid(),
       name: req.data.name || email,
       email,
+      vehicleId: req.data.vehicleId || null,
       phone: req.data.phone || null,
       passwordHash,
-      temporaryPassword: true,
-      status: "ACTIVE",
+      isActive: true,
       admin_ID: admin.ID
     };
 
     await INSERT.into(Drivers).entries(entry);
-    return entry;
+    return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: entry.ID });
+  });
+
+  this.on("listDrivers", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can list drivers");
+
+    return SELECT.from(Drivers)
+      .columns(...safeDriverColumns)
+      .where({ admin_ID: admin.ID });
+  });
+
+  this.on("deleteDriver", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can deactivate drivers");
+
+    const driverId = req.data?.driverId;
+    if (!driverId) return req.reject(400, "driverId is required");
+
+    const driver = await SELECT.one.from(Drivers).where({ ID: driverId });
+    if (!driver || driver.admin_ID !== admin.ID) {
+      return req.reject(404, "Driver not found");
+    }
+
+    await UPDATE(Drivers)
+      .set({ isActive: false })
+      .where({ ID: driverId });
+
+    return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: driverId });
   });
 
   this.on("startTrip", async (req) => {

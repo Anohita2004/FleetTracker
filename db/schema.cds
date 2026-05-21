@@ -7,14 +7,11 @@ entity Admins : cuid, managed {
 }
 entity Drivers : cuid, managed {
   name               : String(120);
-  email              : String(255);
-  phone              : String(40);
+  email              : String(255) @assert.unique;
   passwordHash       : String(255);
-  temporaryPassword  : Boolean default true;
-  status             : String(20) enum {
-    ACTIVE;
-    INACTIVE;
-  } default 'ACTIVE';
+  vehicleId          : String(80);
+  phone              : String(40);
+  isActive           : Boolean default true;
   admin              : Association to Admins not null;
   trips              : Composition of many Trips on trips.driver = $self;
   sessions           : Composition of many DriverSessions on sessions.driver = $self;
@@ -70,10 +67,10 @@ entity MetricSnapshots : cuid, managed {
   avgIngestLatencyMs   : Decimal(9, 2);
 }
 
-entity DriverSessions : cuid, managed {
-  driver           : Association to Drivers not null;
-  sessionTokenHash : String(255) not null;
-  expiresAt        : Timestamp not null;
-  lastAccessedAt   : Timestamp;
-  revoked          : Boolean default false;
+// JWT-based auth does not use this entity; kept for optional stateful sessions.
+entity DriverSessions : cuid {
+  driver     : Association to Drivers not null;
+  token      : String(255) not null;
+  expiresAt  : Timestamp not null;
+  createdAt  : Timestamp not null;
 }

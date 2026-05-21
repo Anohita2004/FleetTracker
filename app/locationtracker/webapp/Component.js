@@ -12,16 +12,28 @@ sap.ui.define([
     init: function () {
       UIComponent.prototype.init.apply(this, arguments);
 
-        this.setModel(new JSONModel({
-          busy: false,
-          driverAuthenticated: false,
-          driverProfile: null,
-          driverCsrfToken: null,
-          driverLogin: {
-            email: "",
-            password: ""
-          },
-          tracking: false,
+      this.setModel(new JSONModel({
+        sCurrentView: "loading",
+        role: null,
+        loginTab: "driver",
+        busy: false,
+        authError: "",
+        adminProfile: null,
+        driverProfile: null,
+        driverCsrfToken: null,
+        driverLogin: {
+          email: "",
+          password: ""
+        },
+        drivers: [],
+        addDriver: {
+          name: "",
+          email: "",
+          password: "",
+          vehicleId: "",
+          phone: ""
+        },
+        tracking: false,
         currentTrip: null,
         totalPoints: 0,
         lastPoint: null,
@@ -40,7 +52,7 @@ sap.ui.define([
           avgClientUpdateLatencyMs: 0,
           latestClientUpdateLatencyMs: 0
         }
-      }), "view");
+      }), "appState");
 
     }
   });

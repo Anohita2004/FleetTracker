@@ -8,6 +8,21 @@
   box-sizing: border-box;
 }
 
+.stateShell {
+  min-height: 60vh;
+}
+
+.centerCard {
+  background: #ffffff;
+  border: 1px solid #d9e7f7;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(31, 65, 107, 0.08);
+  max-width: 520px;
+  margin: 4rem auto 0;
+  gap: 0.75rem;
+}
+
 .heroSection {
   gap: 1rem;
   padding: 1.25rem 1.5rem;
@@ -15,6 +30,29 @@
   border-radius: 1.1rem;
   border: 1px solid #dcecf9;
   box-shadow: 0 0.5rem 1.25rem rgba(21, 93, 166, 0.09);
+}
+
+.headerBar {
+  border-radius: 0.9rem;
+  background: #0a6ed1;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 0.5rem 1rem rgba(8, 55, 104, 0.2);
+}
+
+.headerBar .sapMTitle,
+.headerBar .sapMText,
+.headerBar .sapMBtnInner {
+  color: #ffffff;
+}
+
+.sectionCard {
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #d9e7f7;
+  padding: 1.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
+  gap: 0.75rem;
 }
 
 .heroRow {
@@ -95,6 +133,16 @@
   display: block;
 }
 
+.fabButton {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  border-radius: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(15, 65, 114, 0.3);
+}
+
 @media (max-width: 960px) {
   .trackerPage {
     padding: 1rem;
@@ -102,5 +150,10 @@
 
   .heroSection {
     padding: 1rem;
+  }
+
+  .fabButton {
+    right: 1.25rem;
+    bottom: 1.25rem;
   }
 }
