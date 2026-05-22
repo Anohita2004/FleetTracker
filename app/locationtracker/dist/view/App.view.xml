@@ -11,7 +11,7 @@
           <VBox class="trackerPage">
             <VBox visible="{= ${appState>/sCurrentView} === 'loading' }" class="stateShell">
               <VBox class="centerCard" alignItems="Center" justifyContent="Center">
-                <BusyIndicator size="Large" />
+                <BusyIndicator size="2rem" />
                 <Text text="Checking authentication status..." class="sapUiSmallMarginTop" />
               </VBox>
             </VBox>

@@ -39,11 +39,21 @@ module.exports = cds.service.impl(function () {
 
   const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 
-  const getAdminByEmail = (email) =>
-    SELECT.one.from(Admins).where({ email: normalizeEmail(email) });
+  const getAdminByEmail = (db, email) =>
+    db.run(
+      SELECT.one
+        .from("tracker.Admins")
+        .columns("ID", "name", "email")
+        .where({ email: normalizeEmail(email) })
+    );
 
-  const getDriverByEmail = (email) =>
-    SELECT.one.from(Drivers).where({ email: normalizeEmail(email) });
+  const getDriverByEmail = (db, email) =>
+    db.run(
+      SELECT.one
+        .from("tracker.Drivers")
+        .columns("ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID")
+        .where({ email: normalizeEmail(email) })
+    );
 
   const getTripById = (id) =>
     SELECT.one.from(Trips).where({ ID: id });
@@ -51,8 +61,9 @@ module.exports = cds.service.impl(function () {
   const ensureAdminProfile = async (req) => {
     if (!isAdmin(req)) return null;
 
+    const db = cds.tx(req);
     const email = normalizeEmail(userId(req));
-    let admin = await getAdminByEmail(email);
+    let admin = await getAdminByEmail(db, email);
     if (admin) return admin;
 
     admin = {
@@ -61,12 +72,12 @@ module.exports = cds.service.impl(function () {
       email
     };
 
-    await INSERT.into(Admins).entries(admin);
+    await db.run(INSERT.into("tracker.Admins").entries(admin));
     return admin;
   };
 
   const requireDriverProfile = async (req) => {
-    const driver = await getDriverByEmail(userId(req));
+    const driver = await getDriverByEmail(cds.tx(req), userId(req));
     if (!driver || !driver.isActive) {
       return req.reject(403, "No active driver profile is assigned to this login");
     }
@@ -83,8 +94,7 @@ module.exports = cds.service.impl(function () {
     "email",
     "vehicleId",
     "phone",
-    "isActive",
-    "admin_ID"
+    "isActive"
   ];
 
   const getActiveTrip = (driverId) =>
@@ -137,16 +147,13 @@ module.exports = cds.service.impl(function () {
   });
 
   this.on("me", async (req) => {
-    const admin = await ensureAdminProfile(req);
-    const driver = isDriver(req) ? await getDriverByEmail(userId(req)) : null;
-
     return {
       email: normalizeEmail(userId(req)),
       name: userName(req),
       isAdmin: isAdmin(req),
-      isDriver: Boolean(driver && driver.isActive),
-      adminId: admin?.ID || null,
-      driverId: driver?.ID || null
+      isDriver: isDriver(req),
+      adminId: null,
+      driverId: null
     };
   });
 
@@ -154,6 +161,7 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can create drivers");
 
+    const db = cds.tx(req);
     const email = normalizeEmail(req.data.email);
     const password = String(req.data.password || "");
     if (!email) return req.reject(400, "Driver email is required");
@@ -163,13 +171,13 @@ module.exports = cds.service.impl(function () {
 
     const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
 
-    const existingDriver = await getDriverByEmail(email);
+    const existingDriver = await getDriverByEmail(db, email);
     if (existingDriver && existingDriver.admin_ID !== admin.ID) {
       return req.reject(409, "A driver with this email is already assigned to another admin");
     }
 
     if (existingDriver) {
-      await UPDATE(Drivers)
+      await db.run(UPDATE("tracker.Drivers")
         .set({
           name: req.data.name || existingDriver.name,
           phone: req.data.phone || existingDriver.phone,
@@ -177,8 +185,10 @@ module.exports = cds.service.impl(function () {
           passwordHash,
           isActive: true
         })
-        .where({ ID: existingDriver.ID });
-      return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: existingDriver.ID });
+        .where({ ID: existingDriver.ID }));
+      return db.run(
+        SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: existingDriver.ID })
+      );
     }
 
     const entry = {
@@ -192,36 +202,46 @@ module.exports = cds.service.impl(function () {
       admin_ID: admin.ID
     };
 
-    await INSERT.into(Drivers).entries(entry);
-    return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: entry.ID });
+    await db.run(INSERT.into("tracker.Drivers").entries(entry));
+    return db.run(
+      SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: entry.ID })
+    );
   });
 
   this.on("listDrivers", async (req) => {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can list drivers");
 
-    return SELECT.from(Drivers)
-      .columns(...safeDriverColumns)
-      .where({ admin_ID: admin.ID });
+    const db = cds.tx(req);
+    return db.run(
+      SELECT.from("tracker.Drivers")
+        .columns(...safeDriverColumns)
+        .where({ admin_ID: admin.ID })
+    );
   });
 
   this.on("deleteDriver", async (req) => {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can deactivate drivers");
 
+    const db = cds.tx(req);
     const driverId = req.data?.driverId;
     if (!driverId) return req.reject(400, "driverId is required");
 
-    const driver = await SELECT.one.from(Drivers).where({ ID: driverId });
+    const driver = await db.run(SELECT.one.from("tracker.Drivers").columns("ID", "admin_ID").where({ ID: driverId }));
     if (!driver || driver.admin_ID !== admin.ID) {
       return req.reject(404, "Driver not found");
     }
 
-    await UPDATE(Drivers)
-      .set({ isActive: false })
-      .where({ ID: driverId });
+    await db.run(
+      UPDATE("tracker.Drivers")
+        .set({ isActive: false })
+        .where({ ID: driverId })
+    );
 
-    return SELECT.one.from(Drivers).columns(...safeDriverColumns).where({ ID: driverId });
+    return db.run(
+      SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: driverId })
+    );
   });
 
   this.on("startTrip", async (req) => {

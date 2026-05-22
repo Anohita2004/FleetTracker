@@ -680,20 +680,12 @@ sap.ui.define([
     },
 
     _getAdminProfile: async function () {
-      const response = await this._get("/userapi/currentUser");
-      const scopes = response && (response.scopes || response.scope || []);
-      const roles = response && (response.roles || []);
-      const hasFleetAdminRole = Array.isArray(scopes)
-        ? scopes.some(function (scope) { return scope.includes("FleetAdmin"); })
-        : false;
-      const hasRole = Array.isArray(roles) ? roles.indexOf("FleetAdmin") !== -1 : false;
+      const response = await this._get("/tracker/me()");
 
       return {
-        name: response.firstname && response.lastname
-          ? response.firstname + " " + response.lastname
-          : response.name || response.email || "Fleet Admin",
-        email: response.email || response.name || "",
-        isFleetAdmin: hasFleetAdminRole || hasRole
+        name: response && response.name ? response.name : "Fleet Admin",
+        email: response && response.email ? response.email : "",
+        isFleetAdmin: Boolean(response && response.isAdmin)
       };
     }
   });
