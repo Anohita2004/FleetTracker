@@ -29,8 +29,9 @@ service TrackerService @(path : '/tracker') {
     modifiedBy,
     name,
     email,
+    vehicleId,
     phone,
-    status,
+    isActive,
     admin,
     trips
   };
@@ -60,9 +61,16 @@ service TrackerService @(path : '/tracker') {
   action createDriver(
     name     : String,
     email    : String,
-    phone    : String,
-    password : String
+    password : String,
+    vehicleId: String,
+    phone    : String
   ) returns Drivers;
+
+  @requires: 'FleetAdmin'
+  function listDrivers() returns array of Drivers;
+
+  @requires: 'FleetAdmin'
+  action deleteDriver(driverId : UUID) returns Drivers;
 
   @requires: 'Driver'
   action startTrip(title : String) returns Trips;

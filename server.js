@@ -1,7 +1,8 @@
 const cds = require("@sap/cds");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
-const session = require("express-session");
+const jwt = require("jsonwebtoken");
 const { SELECT, INSERT, UPDATE } = cds.ql;
 const { createSecurityContext, XsuaaService, XsaService } = require("@sap/xssec");
 
@@ -10,21 +11,35 @@ module.exports = cds.server;
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const nowISO = () => new Date().toISOString();
 const PASSWORD_MIN_LENGTH = 8;
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const JWT_COOKIE_NAME = "driver_token";
+const JWT_EXPIRES_IN = "8h";
+const JWT_TTL_MS = 8 * 60 * 60 * 1000;
 const DUMMY_BCRYPT_HASH = "$2b$10$hYQfIctt8V3M9zb5z/JEuOsj4dHww64JfQ3MNCWiA3f9aULphQxse";
-const resolveSessionSecret = () => {
-  const configuredSessionSecret = process.env.JWT_SECRET_KEY || process.env.SESSION_SECRET;
-  if (configuredSessionSecret) return configuredSessionSecret;
-  const xsuaaCredentials = cds.requires?.auth?.credentials;
-  const xsuaaSecret = xsuaaCredentials?.clientsecret || xsuaaCredentials?.clientSecret;
-  if (xsuaaSecret) return xsuaaSecret;
-  return process.env.NODE_ENV === "production" ? null : "driver-session-dev-secret";
-};
-let sessionSecret = null;
-const hashToken = (value) => crypto.createHash("sha256").update(String(value || "")).digest("hex");
-const getSessionTokenHash = (req) => hashToken(`${req.sessionID}:${sessionSecret}`);
-const isFutureDate = (value) => value && new Date(value).getTime() > Date.now();
 const roundToTwoDecimals = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+
+const resolveJwtSecret = () => {
+  const configuredSecret = process.env.JWT_SECRET_KEY;
+  if (configuredSecret) return configuredSecret;
+  return process.env.NODE_ENV === "production" ? null : "driver-jwt-dev-secret";
+};
+
+let jwtSecret = null;
+
+const issueDriverToken = (driver, csrfToken) => jwt.sign({
+  driverId: driver.ID,
+  email: driver.email,
+  role: "driver",
+  csrf: csrfToken
+}, jwtSecret, { expiresIn: JWT_EXPIRES_IN });
+
+const readDriverToken = (req) => req.cookies?.[JWT_COOKIE_NAME];
+const verifyDriverToken = (token) => {
+  try {
+    return jwt.verify(token, jwtSecret);
+  } catch (error) {
+    return null;
+  }
+};
 
 // Lazily built auth service – created once from XSUAA credentials on first request
 let _authService = null;
@@ -39,25 +54,15 @@ const getAuthService = () => {
 };
 
 cds.on("bootstrap", (app) => {
-  sessionSecret = resolveSessionSecret();
-  if (!sessionSecret) {
-    throw new Error("SESSION_SECRET or JWT_SECRET_KEY must be configured in production for driver sessions.");
+  jwtSecret = resolveJwtSecret();
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET_KEY must be configured in production for driver JWT sessions.");
   }
 
-  app.use(session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: SESSION_TTL_MS
-    }
-  }));
+  app.use(cookieParser());
 
   const dbPromise = cds.connect.to("db");
-  const driverSelectFields = ["ID", "name", "email", "phone", "status", "admin_ID", "temporaryPassword"];
+  const driverSelectFields = ["ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID"];
 
   const getDriverByEmail = async (db, email) => {
     return db.run(SELECT.one.from("tracker.Drivers").where({ email: normalizeEmail(email) }));
@@ -79,35 +84,49 @@ cds.on("bootstrap", (app) => {
     );
   };
 
-  const requireDriverSession = async (req, res, next) => {
+  app.use((req, res, next) => {
+    if (req.user) {
+      return next();
+    }
+
+    const token = readDriverToken(req);
+    if (!token) {
+      return next();
+    }
+
+    const payload = verifyDriverToken(token);
+    if (!payload) {
+      return next();
+    }
+
+    req.driverToken = payload;
+    req.user = new cds.User({
+      id: payload.email,
+      roles: ["Driver"],
+      attr: { email: payload.email }
+    });
+    return next();
+  });
+
+  const requireDriverAuth = async (req, res, next) => {
     try {
-      const driverId = req.session?.driverId;
-      if (!driverId || !req.sessionID) {
+      const token = readDriverToken(req);
+      if (!token) {
+        return res.status(401).json({ error: "Driver login required" });
+      }
+
+      const payload = verifyDriverToken(token);
+      if (!payload) {
         return res.status(401).json({ error: "Driver login required" });
       }
 
       const db = await dbPromise;
-      const sessionTokenHash = getSessionTokenHash(req);
-      const activeSession = await db.run(
-        SELECT.one.from("tracker.DriverSessions")
-          .where({ driver_ID: driverId, sessionTokenHash, revoked: false })
-      );
-
-      if (!activeSession || !isFutureDate(activeSession.expiresAt)) {
-        return res.status(401).json({ error: "Driver session expired. Please log in again." });
-      }
-
-      const driver = await getDriverById(db, driverId);
-      if (!driver || driver.status !== "ACTIVE") {
+      const driver = await getDriverById(db, payload.driverId);
+      if (!driver || !driver.isActive) {
         return res.status(403).json({ error: "No active driver profile is assigned to this login" });
       }
 
-      await db.run(
-        UPDATE("tracker.DriverSessions")
-          .set({ lastAccessedAt: nowISO() })
-          .where({ ID: activeSession.ID })
-      );
-
+      req.driverToken = payload;
       req.driver = driver;
       return next();
     } catch (error) {
@@ -116,8 +135,8 @@ cds.on("bootstrap", (app) => {
   };
 
   const requireDriverCsrf = (req, res, next) => {
-    const token = req.headers["x-driver-csrf-token"];
-    if (!token || token !== req.session?.driverCsrfToken) {
+    const headerToken = req.headers["x-driver-csrf-token"];
+    if (!headerToken || headerToken !== req.driverToken?.csrf) {
       return res.status(403).json({ error: "Invalid or missing CSRF token" });
     }
     return next();
@@ -139,76 +158,63 @@ cds.on("bootstrap", (app) => {
       const driver = await getDriverByEmail(db, email);
       const hashToCompare = driver?.passwordHash || DUMMY_BCRYPT_HASH;
       const passwordOk = await bcrypt.compare(password, hashToCompare);
-      if (!driver || driver.status !== "ACTIVE" || !driver.passwordHash || !passwordOk) {
-        return res.status(401).json({ error: "Invalid email or password" });
+      if (!driver || !driver.isActive || !driver.passwordHash || !passwordOk) {
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      await new Promise((resolve, reject) => {
-        req.session.regenerate((error) => (error ? reject(error) : resolve()));
+      const csrfToken = crypto.randomBytes(32).toString("hex");
+      const token = issueDriverToken(driver, csrfToken);
+
+      res.cookie(JWT_COOKIE_NAME, token, {
+        httpOnly: true,
+        sameSite: "Strict",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: JWT_TTL_MS
       });
-
-      req.session.driverId = driver.ID;
-      req.session.driverEmail = driver.email;
-      req.session.loggedInAt = nowISO();
-      req.session.driverCsrfToken = crypto.randomBytes(32).toString("hex");
-
-      const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-      const sessionTokenHash = getSessionTokenHash(req);
-
-      await db.run(
-        INSERT.into("tracker.DriverSessions").entries({
-          ID: cds.utils.uuid(),
-          driver_ID: driver.ID,
-          sessionTokenHash,
-          expiresAt,
-          lastAccessedAt: nowISO(),
-          revoked: false
-        })
-      );
 
       return res.json({
+        success: true,
         driver: {
-          ID: driver.ID,
+          id: driver.ID,
           name: driver.name,
-          email: driver.email,
-          status: driver.status
+          email: driver.email
         },
-        csrfToken: req.session.driverCsrfToken
+        csrfToken
       });
     } catch (error) {
       return next(error);
     }
   });
 
-  app.post("/drivers/logout", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
-    try {
-      const db = await dbPromise;
-      const sessionTokenHash = getSessionTokenHash(req);
-      await db.run(
-        UPDATE("tracker.DriverSessions")
-          .set({ revoked: true, lastAccessedAt: nowISO() })
-          .where({ driver_ID: req.driver.ID, sessionTokenHash, revoked: false })
-      );
-
-      await new Promise((resolve, reject) => {
-        req.session.destroy((error) => (error ? reject(error) : resolve()));
-      });
-
-      res.clearCookie("connect.sid");
-      return res.json({ ok: true });
-    } catch (error) {
-      return next(error);
+  app.get("/drivers/me", async (req, res) => {
+    const token = readDriverToken(req);
+    if (!token) {
+      return res.status(401).json({ error: "Driver login required" });
     }
+
+    const payload = verifyDriverToken(token);
+    if (!payload) {
+      return res.status(401).json({ error: "Driver login required" });
+    }
+
+    const db = await dbPromise;
+    const driver = await getDriverById(db, payload.driverId);
+    if (!driver || !driver.isActive) {
+      return res.status(401).json({ error: "Driver login required" });
+    }
+
+    return res.json({
+      driver,
+      csrfToken: payload.csrf || null
+    });
   });
 
-  app.get("/drivers/me", requireDriverSession, async (req, res) => {
-    if (!req.session.driverCsrfToken) {
-      req.session.driverCsrfToken = crypto.randomBytes(32).toString("hex");
-    }
-    res.json({ driver: req.driver, csrfToken: req.session.driverCsrfToken });
+  app.post("/drivers/logout", requireDriverAuth, requireDriverCsrf, async (req, res) => {
+    res.clearCookie(JWT_COOKIE_NAME);
+    return res.json({ ok: true });
   });
 
-  app.get("/drivers/activeTrip", requireDriverSession, async (req, res, next) => {
+  app.get("/drivers/activeTrip", requireDriverAuth, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const trip = await getActiveTrip(db, req.driver.ID);
@@ -218,7 +224,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/startTrip", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
+  app.post("/drivers/startTrip", requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const activeTrip = await getActiveTrip(db, req.driver.ID);
@@ -241,7 +247,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/stopTrip", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
+  app.post("/drivers/stopTrip", requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
     try {
       const tripId = req.body?.tripId;
       if (!tripId) {
@@ -270,7 +276,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.post("/drivers/recordLocation", requireDriverSession, requireDriverCsrf, async (req, res, next) => {
+  app.post("/drivers/recordLocation", requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
     try {
       const { tripId, latitude, longitude } = req.body || {};
       if (!tripId) {
@@ -312,7 +318,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.get("/drivers/path/:tripId", requireDriverSession, async (req, res, next) => {
+  app.get("/drivers/path/:tripId", requireDriverAuth, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const { tripId } = req.params;
@@ -336,7 +342,7 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.get("/drivers/metrics", requireDriverSession, async (req, res, next) => {
+  app.get("/drivers/metrics", requireDriverAuth, async (req, res, next) => {
     try {
       const db = await dbPromise;
       const [tripCountRow] = await db.run(
@@ -443,7 +449,7 @@ cds.on("bootstrap", (app) => {
           const driver = await db.run(
             SELECT.one.from("tracker.Drivers").where({ email })
           );
-          if (!driver || driver.status !== "ACTIVE") {
+          if (!driver || !driver.isActive) {
             return res.status(403).json({ error: "No active driver profile is assigned to this login" });
           }
           const trip = await db.run(
