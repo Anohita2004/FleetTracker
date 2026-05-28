@@ -16,7 +16,7 @@ sap.ui.define([
 
     init: function () {
       UIComponent.prototype.init.apply(this, arguments);
-      this._leafletPromise = this._loadLeaflet();
+      this._loadLeaflet();
 
       this.setModel(new JSONModel({
         sCurrentView: "loading",
@@ -66,6 +66,10 @@ sap.ui.define([
     },
 
     _loadLeaflet: function () {
+      if (this._leafletPromise) {
+        return this._leafletPromise;
+      }
+
       const ensureLeafletStyles = function () {
         if (!document.querySelector(`link[href="${LEAFLET_CSS_URL}"]`)) {
           const link = document.createElement("link");
@@ -80,14 +84,11 @@ sap.ui.define([
       ensureLeafletStyles();
 
       if (window.L) {
-        return Promise.resolve();
-      }
-
-      if (this._leafletPromise) {
+        this._leafletPromise = Promise.resolve();
         return this._leafletPromise;
       }
 
-      return new Promise(function (resolve, reject) {
+      this._leafletPromise = new Promise(function (resolve, reject) {
         const existingScript = document.querySelector(`script[src="${LEAFLET_JS_URL}"]`);
         if (existingScript) {
           if (window.L) {
@@ -111,6 +112,8 @@ sap.ui.define([
         };
         document.head.appendChild(script);
       });
+
+      return this._leafletPromise;
     }
   });
 });
