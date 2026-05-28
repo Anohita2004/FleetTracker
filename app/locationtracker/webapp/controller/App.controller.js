@@ -31,6 +31,15 @@ sap.ui.define([
         });
       }
 
+      const mapHost = this.byId("trackerMap");
+      if (mapHost) {
+        mapHost.addEventDelegate({
+          onAfterRendering: function () {
+            this._syncPolyline();
+          }.bind(this)
+        });
+      }
+
       this.getView().addEventDelegate({
         onAfterShow: function () {
           this._ensureMap();
@@ -327,10 +336,60 @@ sap.ui.define([
 
       try {
         const response = await this._adminGet("/tracker/listDrivers()");
-        this._viewModel.setProperty("/drivers", response.value || []);
+        const rawDrivers = this._getODataCollection(response);
+        const drivers = rawDrivers.map(function (driver) {
+          return this._normalizeDriver(driver);
+        }.bind(this));
+        this._viewModel.setProperty("/drivers", drivers);
       } catch (error) {
         MessageBox.error(error.message || "Unable to load drivers");
       }
+    },
+
+    _getODataCollection: function (response) {
+      if (response && Array.isArray(response.value)) {
+        return response.value;
+      }
+      if (response && response.d) {
+        if (Array.isArray(response.d.results)) {
+          return response.d.results;
+        }
+        if (Array.isArray(response.d)) {
+          return response.d;
+        }
+      }
+      return [];
+    },
+
+    _normalizeDriver: function (driver) {
+      const safeDriver = driver || {};
+      const activeValue = safeDriver.isActive != null ? safeDriver.isActive : safeDriver.ISACTIVE;
+      let isActive = null;
+      if (activeValue != null) {
+        if (typeof activeValue === "boolean") {
+          isActive = activeValue;
+        } else if (typeof activeValue === "number") {
+          isActive = activeValue === 1;
+        } else if (typeof activeValue === "string") {
+          const normalized = activeValue.trim().toLowerCase();
+          isActive = normalized === "true" || normalized === "1";
+        } else {
+          isActive = Boolean(activeValue);
+        }
+      }
+
+      return {
+        ID: safeDriver.ID || safeDriver.Id || safeDriver.id || null,
+        name: safeDriver.name || safeDriver.NAME || "",
+        email: safeDriver.email || safeDriver.EMAIL || "",
+        vehicleId: safeDriver.vehicleId || safeDriver.VEHICLEID || null,
+        phone: safeDriver.phone || safeDriver.PHONE || null,
+        isActive,
+        createdAt: safeDriver.createdAt || safeDriver.CREATEDAT || null,
+        createdBy: safeDriver.createdBy || safeDriver.CREATEDBY || null,
+        modifiedAt: safeDriver.modifiedAt || safeDriver.MODIFIEDAT || null,
+        modifiedBy: safeDriver.modifiedBy || safeDriver.MODIFIEDBY || null
+      };
     },
 
     _loadActiveTrip: async function () {
@@ -402,8 +461,8 @@ sap.ui.define([
     },
 
     _ensureMap: function () {
-      const mapContainerControl = this.byId("trackerMapContainer");
-      const mapContainer = mapContainerControl && mapContainerControl.getDomRef();
+      const mapHost = this.byId("trackerMap");
+      const mapContainer = mapHost && mapHost.getDomRef();
 
       if (!mapContainer) {
         return;
@@ -442,10 +501,17 @@ sap.ui.define([
       }
 
       if (this._map) {
-        setTimeout(function () {
-          this._map.invalidateSize();
-        }.bind(this), 150);
-        return;
+        if (this._map.getContainer && this._map.getContainer() !== mapContainer) {
+          this._map.remove();
+          this._map = null;
+          this._polyline = null;
+          this._marker = null;
+        } else {
+          setTimeout(function () {
+            this._map.invalidateSize();
+          }.bind(this), 150);
+          return;
+        }
       }
 
       try {

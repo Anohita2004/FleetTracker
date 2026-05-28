@@ -110,6 +110,7 @@
   border: 1px solid #d9e7f7;
   border-radius: 1rem;
   box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
+  overflow: hidden;
 }
 
 .metricsPanel {
@@ -118,6 +119,7 @@
 }
 
 .mapShell {
+  position: relative;
   border-radius: 1rem;
   overflow: hidden;
   border: 1px solid #d9e7f7;
@@ -128,7 +130,7 @@
 
 .trackerMap {
   width: 100%;
-  height: 28rem;
+  height: 100%;
   min-height: 28rem;
   display: block;
 }
@@ -137,6 +139,7 @@
   position: fixed;
   right: 2rem;
   bottom: 2rem;
+  z-index: 1000;
   border-radius: 50%;
   width: 3.25rem;
   height: 3.25rem;
