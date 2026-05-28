@@ -20,6 +20,16 @@ sap.ui.define([
       this._viewModel = this.getOwnerComponent().getModel("appState");
       this._adminCsrfToken = null;
       this._addDriverDialog = null;
+      this._leafletLoadPending = false;
+
+      const mapContainer = this.byId("trackerMapContainer");
+      if (mapContainer) {
+        mapContainer.addEventDelegate({
+          onAfterRendering: function () {
+            this._ensureMap();
+          }.bind(this)
+        });
+      }
 
       this.getView().addEventDelegate({
         onAfterShow: function () {
@@ -392,15 +402,42 @@ sap.ui.define([
     },
 
     _ensureMap: function () {
-      const mapContainer = document.getElementById("tracker-map");
+      const mapContainerControl = this.byId("trackerMapContainer");
+      const mapContainer = mapContainerControl && mapContainerControl.getDomRef();
 
       if (!mapContainer) {
         return;
       }
 
       if (!window.L) {
+        const component = this.getOwnerComponent();
+        if (component && component.getLeafletReady) {
+          if (!this._leafletLoadPending) {
+            this._leafletLoadPending = true;
+            component.getLeafletReady()
+              .then(function () {
+                this._leafletLoadPending = false;
+                this._ensureMap();
+              }.bind(this))
+              .catch(function () {
+                this._leafletLoadPending = false;
+                this._viewModel.setProperty("/statusText", "Leaflet failed to load");
+              }.bind(this));
+          }
+
+          this._viewModel.setProperty("/statusText", "Loading map resources");
+          return;
+        }
+
         this._viewModel.setProperty("/statusText", "Leaflet failed to load");
         return;
+      }
+
+      if (this._map && this._map.getContainer && this._map.getContainer() !== mapContainer) {
+        this._map.remove();
+        this._map = null;
+        this._polyline = null;
+        this._marker = null;
       }
 
       if (this._map) {
