@@ -67,7 +67,7 @@ sap.ui.define([
 
     _loadLeaflet: function () {
       const ensureLeafletStyles = function () {
-        if (!document.querySelector('link[href="' + LEAFLET_CSS_URL + '"]')) {
+        if (!document.querySelector(`link[href="${LEAFLET_CSS_URL}"]`)) {
           const link = document.createElement("link");
           link.rel = "stylesheet";
           link.href = LEAFLET_CSS_URL;
@@ -88,7 +88,7 @@ sap.ui.define([
       }
 
       return new Promise(function (resolve, reject) {
-        const existingScript = document.querySelector('script[src="' + LEAFLET_JS_URL + '"]');
+        const existingScript = document.querySelector(`script[src="${LEAFLET_JS_URL}"]`);
         if (existingScript) {
           if (window.L) {
             resolve();

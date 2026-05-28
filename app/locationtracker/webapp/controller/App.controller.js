@@ -433,7 +433,8 @@ sap.ui.define([
         return;
       }
 
-      if (this._map && this._map.getContainer && this._map.getContainer() !== mapContainer) {
+      const existingContainer = this._map && this._map.getContainer ? this._map.getContainer() : null;
+      if (existingContainer && existingContainer !== mapContainer) {
         this._map.remove();
         this._map = null;
         this._polyline = null;
