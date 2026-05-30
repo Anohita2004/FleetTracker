@@ -248,10 +248,14 @@ module.exports = cds.service.impl(function () {
 
     const db = cds.tx(req);
     const driverId = req.data?.driverId;
+    console.log("[deleteDriver] req.data:", JSON.stringify(req.data));
+    console.log("[deleteDriver] driverId:", driverId, "admin.ID:", admin.ID);
     if (!driverId) return req.reject(400, "driverId is required");
 
     const driver = await db.run(SELECT.one.from("tracker.Drivers").columns("ID", "admin_ID").where({ ID: driverId }));
+    console.log("[deleteDriver] driver found:", JSON.stringify(driver));
     if (!driver || driver.admin_ID !== admin.ID) {
+      console.log("[deleteDriver] MISMATCH — driver.admin_ID:", driver?.admin_ID, "vs admin.ID:", admin.ID);
       return req.reject(404, "Driver not found");
     }
 
