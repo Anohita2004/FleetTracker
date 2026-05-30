@@ -7,6 +7,12 @@
   },
   "routes": [
     {
+      "source": "^/login$",
+      "target": "/comlocationtrackerlocationtracker/index.html",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
       "source": "^/drivers/login$",
       "target": "/drivers/login",
       "destination": "srv-api",
@@ -52,7 +58,7 @@
       "source": "^(.*)$",
       "target": "$1",
       "service": "html5-apps-repo-rt",
-      "authenticationType": "xsuaa"
+      "authenticationType": "none"
     }
   ]
 }

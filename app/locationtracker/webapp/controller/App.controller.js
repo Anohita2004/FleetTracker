@@ -319,11 +319,12 @@ sap.ui.define([
           await this._loadDriverList();
           return;
         }
+        // Authenticated via XSUAA but does not have the FleetAdmin role.
+        this._setView("error401", null);
+        return;
       } catch (error) {
-        if (error && error.status === 401) {
-          this._setView("error401", null);
-          return;
-        }
+        // 401 means user is not XSUAA-authenticated — show the login page.
+        // Any other error also falls through to the login page.
       }
 
       this._setView("loginPage", null);
