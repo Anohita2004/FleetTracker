@@ -95,7 +95,7 @@ sap.ui.define([
         return;
       }
 
-      window.location.href = "/logout";
+      window.location.href = "/do/logout";
     },
 
     onGoToLogin: function () {
@@ -335,7 +335,7 @@ sap.ui.define([
       }
 
       try {
-        const response = await this._adminGet("/tracker/listDrivers()");
+        const response = await this._adminGet("/tracker/Drivers?$expand=trips");
         const rawDrivers = this._getODataCollection(response);
         const drivers = rawDrivers.map(function (driver) {
           return this._normalizeDriver(driver);
@@ -378,6 +378,16 @@ sap.ui.define([
         }
       }
 
+      let activityStatus = "Idle";
+      if (safeDriver.trips && safeDriver.trips.length > 0) {
+        const hasActiveTrip = safeDriver.trips.some(function(t) {
+          return t.status === "ACTIVE" || t.STATUS === "ACTIVE";
+        });
+        if (hasActiveTrip) {
+          activityStatus = "On Trip";
+        }
+      }
+
       return {
         ID: safeDriver.ID || safeDriver.Id || safeDriver.id || null,
         name: safeDriver.name || safeDriver.NAME || "",
@@ -385,6 +395,7 @@ sap.ui.define([
         vehicleId: safeDriver.vehicleId || safeDriver.VEHICLEID || null,
         phone: safeDriver.phone || safeDriver.PHONE || null,
         isActive,
+        activityStatus,
         createdAt: safeDriver.createdAt || safeDriver.CREATEDAT || null,
         createdBy: safeDriver.createdBy || safeDriver.CREATEDBY || null,
         modifiedAt: safeDriver.modifiedAt || safeDriver.MODIFIEDAT || null,
@@ -664,7 +675,7 @@ sap.ui.define([
         return this._adminCsrfToken;
       }
 
-      const response = await fetch("/tracker/", {
+      const response = await fetch("/tracker/$metadata", {
         headers: {
           "X-CSRF-Token": "Fetch"
         }

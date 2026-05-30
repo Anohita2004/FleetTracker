@@ -33,7 +33,13 @@ module.exports = cds.service.impl(function () {
 
   const nowISO = () => new Date().toISOString();
   const userId = (req) => req.user?.id;
-  const userName = (req) => req.user?.attr?.given_name || req.user?.attr?.family_name || userId(req);
+  const userName = (req) => {
+    const attr = req.user?.attr || {};
+    const first = attr.firstname || attr.given_name || attr.firstName || attr.givenName || "";
+    const last = attr.lastname || attr.family_name || attr.lastName || attr.familyName || "";
+    const full = `${first} ${last}`.trim();
+    return full || userId(req);
+  };
   const isAdmin = (req) => req.user?.is("FleetAdmin");
   const isDriver = (req) => req.user?.is("Driver");
 
