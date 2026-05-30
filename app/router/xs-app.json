@@ -1,6 +1,10 @@
 {
   "welcomeFile": "/comlocationtrackerlocationtracker/index.html",
   "authenticationMethod": "route",
+  "logout": {
+    "logoutEndpoint": "/do/logout",
+    "logoutPage": "/comlocationtrackerlocationtracker/index.html"
+  },
   "routes": [
     {
       "source": "^/drivers/login$",
