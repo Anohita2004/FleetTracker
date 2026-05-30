@@ -219,11 +219,27 @@ module.exports = cds.service.impl(function () {
     if (!admin) return req.reject(403, "Only fleet admins can list drivers");
 
     const db = cds.tx(req);
-    return db.run(
+    const drivers = await db.run(
       SELECT.from("tracker.Drivers")
         .columns(...safeDriverColumns)
         .where({ admin_ID: admin.ID })
     );
+
+    const driverIds = drivers.map((d) => d.ID).filter(Boolean);
+    let activeTrips = [];
+    if (driverIds.length > 0) {
+      activeTrips = await db.run(
+        SELECT.from("tracker.Trips")
+          .columns("driver_ID")
+          .where({ status: "ACTIVE", driver_ID: { in: driverIds } })
+      );
+    }
+
+    const activeDriverIds = new Set(activeTrips.map((t) => t.driver_ID));
+    return drivers.map((d) => ({
+      ...d,
+      activityStatus: activeDriverIds.has(d.ID) ? "On Trip" : "Idle"
+    }));
   });
 
   this.on("deleteDriver", async (req) => {

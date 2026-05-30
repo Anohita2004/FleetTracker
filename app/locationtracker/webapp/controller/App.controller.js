@@ -335,7 +335,7 @@ sap.ui.define([
       }
 
       try {
-        const response = await this._adminGet("/tracker/Drivers?$expand=trips");
+        const response = await this._adminGet("/tracker/listDrivers()");
         const rawDrivers = this._getODataCollection(response);
         const drivers = rawDrivers.map(function (driver) {
           return this._normalizeDriver(driver);
@@ -378,15 +378,7 @@ sap.ui.define([
         }
       }
 
-      let activityStatus = "Idle";
-      if (safeDriver.trips && safeDriver.trips.length > 0) {
-        const hasActiveTrip = safeDriver.trips.some(function(t) {
-          return t.status === "ACTIVE" || t.STATUS === "ACTIVE";
-        });
-        if (hasActiveTrip) {
-          activityStatus = "On Trip";
-        }
-      }
+      const activityStatus = safeDriver.activityStatus || "Idle";
 
       return {
         ID: safeDriver.ID || safeDriver.Id || safeDriver.id || null,
