@@ -15,16 +15,7 @@
       "version": "1.22.0",
       "toolsId": "ab43bd86-63c3-4839-87ec-402f7a385a31"
     },
-    "dataSources": {
-      "mainService": {
-        "uri": "/tracker/",
-        "type": "OData",
-        "settings": {
-          "annotations": [],
-          "odataVersion": "4.01"
-        }
-      }
-    }
+    "dataSources": {}
   },
   "sap.ui": {
     "technology": "UI5",
@@ -61,15 +52,6 @@
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
           "bundleName": "com.locationtracker.locationtracker.i18n.i18n"
-        }
-      },
-      "": {
-        "dataSource": "mainService",
-        "preload": true,
-        "settings": {
-          "operationMode": "Server",
-          "autoExpandSelect": true,
-          "earlyRequests": true
         }
       }
     },

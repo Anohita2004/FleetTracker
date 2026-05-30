@@ -587,7 +587,8 @@ sap.ui.define([
     _get: async function (url) {
       const response = await fetch(url, {
         headers: {
-          Accept: "application/json"
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
@@ -603,7 +604,8 @@ sap.ui.define([
     _post: async function (url, payload) {
       const headers = {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       };
       const csrfToken = this._viewModel.getProperty("/driverCsrfToken");
       if (csrfToken) {
@@ -628,7 +630,8 @@ sap.ui.define([
     _adminGet: async function (url) {
       const response = await fetch(url, {
         headers: {
-          Accept: "application/json"
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
@@ -645,7 +648,8 @@ sap.ui.define([
       const csrfToken = await this._getAdminCsrfToken();
       const headers = {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       };
       if (csrfToken) {
         headers["X-CSRF-Token"] = csrfToken;
@@ -674,7 +678,8 @@ sap.ui.define([
 
       const response = await fetch("/tracker/$metadata", {
         headers: {
-          "X-CSRF-Token": "Fetch"
+          "X-CSRF-Token": "Fetch",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
