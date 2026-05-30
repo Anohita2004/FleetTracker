@@ -3,8 +3,7 @@
   "authenticationMethod": "route",
   "logout": {
     "logoutEndpoint": "/do/logout",
-    "logoutPage": "/comlocationtrackerlocationtracker/index.html",
-    "logoutIdpPage": "https://accounts.sap.com/logout?redirect_uri=https%3A%2F%2F32e70d48trial-dev-locationtracker.cfapps.ap21.hana.ondemand.com%2Fcomlocationtrackerlocationtracker%2Findex.html"
+    "logoutPage": "/comlocationtrackerlocationtracker/index.html"
   },
   "routes": [
     {

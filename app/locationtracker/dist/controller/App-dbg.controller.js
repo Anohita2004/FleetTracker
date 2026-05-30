@@ -20,6 +20,16 @@ sap.ui.define([
       this._viewModel = this.getOwnerComponent().getModel("appState");
       this._adminCsrfToken = null;
       this._addDriverDialog = null;
+      this._leafletLoadPending = false;
+
+      const mapContainer = this.byId("trackerMapContainer");
+      if (mapContainer) {
+        mapContainer.addEventDelegate({
+          onAfterRendering: function () {
+            this._ensureMap();
+          }.bind(this)
+        });
+      }
 
       const mapHost = this.byId("trackerMap");
       if (mapHost) {
@@ -85,7 +95,7 @@ sap.ui.define([
         return;
       }
 
-      window.location.href = "/logout";
+      window.location.href = "/do/logout";
     },
 
     onGoToLogin: function () {
@@ -309,11 +319,12 @@ sap.ui.define([
           await this._loadDriverList();
           return;
         }
+        // Authenticated via XSUAA but does not have the FleetAdmin role.
+        this._setView("error401", null);
+        return;
       } catch (error) {
-        if (error && error.status === 401) {
-          this._setView("error401", null);
-          return;
-        }
+        // 401 means user is not XSUAA-authenticated — show the login page.
+        // Any other error also falls through to the login page.
       }
 
       this._setView("loginPage", null);
@@ -368,6 +379,8 @@ sap.ui.define([
         }
       }
 
+      const activityStatus = safeDriver.activityStatus || "Idle";
+
       return {
         ID: safeDriver.ID || safeDriver.Id || safeDriver.id || null,
         name: safeDriver.name || safeDriver.NAME || "",
@@ -375,6 +388,7 @@ sap.ui.define([
         vehicleId: safeDriver.vehicleId || safeDriver.VEHICLEID || null,
         phone: safeDriver.phone || safeDriver.PHONE || null,
         isActive,
+        activityStatus,
         createdAt: safeDriver.createdAt || safeDriver.CREATEDAT || null,
         createdBy: safeDriver.createdBy || safeDriver.CREATEDBY || null,
         modifiedAt: safeDriver.modifiedAt || safeDriver.MODIFIEDAT || null,
@@ -459,8 +473,35 @@ sap.ui.define([
       }
 
       if (!window.L) {
+        const component = this.getOwnerComponent();
+        if (component && component.getLeafletReady) {
+          if (!this._leafletLoadPending) {
+            this._leafletLoadPending = true;
+            component.getLeafletReady()
+              .then(function () {
+                this._leafletLoadPending = false;
+                this._ensureMap();
+              }.bind(this))
+              .catch(function () {
+                this._leafletLoadPending = false;
+                this._viewModel.setProperty("/statusText", "Leaflet failed to load");
+              }.bind(this));
+          }
+
+          this._viewModel.setProperty("/statusText", "Loading map resources");
+          return;
+        }
+
         this._viewModel.setProperty("/statusText", "Leaflet failed to load");
         return;
+      }
+
+      const existingContainer = this._map && this._map.getContainer ? this._map.getContainer() : null;
+      if (existingContainer && existingContainer !== mapContainer) {
+        this._map.remove();
+        this._map = null;
+        this._polyline = null;
+        this._marker = null;
       }
 
       if (this._map) {
@@ -627,7 +668,7 @@ sap.ui.define([
         return this._adminCsrfToken;
       }
 
-      const response = await fetch("/tracker/", {
+      const response = await fetch("/tracker/$metadata", {
         headers: {
           "X-CSRF-Token": "Fetch"
         }
