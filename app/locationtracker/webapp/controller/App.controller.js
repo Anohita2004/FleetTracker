@@ -642,11 +642,14 @@ sap.ui.define([
     },
 
     _adminPost: async function (url, payload) {
+      const csrfToken = await this._getAdminCsrfToken();
       const headers = {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-CSRF-Token": await this._getAdminCsrfToken()
+        Accept: "application/json"
       };
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
 
       const response = await fetch(url, {
         method: "POST",
@@ -662,6 +665,7 @@ sap.ui.define([
 
       return response.json();
     },
+
 
     _getAdminCsrfToken: async function () {
       if (this._adminCsrfToken) {

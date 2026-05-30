@@ -248,14 +248,17 @@ module.exports = cds.service.impl(function () {
 
     const db = cds.tx(req);
     const driverId = req.data?.driverId;
-    console.log("[deleteDriver] req.data:", JSON.stringify(req.data));
-    console.log("[deleteDriver] driverId:", driverId, "admin.ID:", admin.ID);
     if (!driverId) return req.reject(400, "driverId is required");
 
-    const driver = await db.run(SELECT.one.from("tracker.Drivers").columns("ID", "admin_ID").where({ ID: driverId }));
-    console.log("[deleteDriver] driver found:", JSON.stringify(driver));
-    if (!driver || driver.admin_ID !== admin.ID) {
-      console.log("[deleteDriver] MISMATCH — driver.admin_ID:", driver?.admin_ID, "vs admin.ID:", admin.ID);
+    // Query with admin_ID in the WHERE clause so CAP/HANA handles the column name
+    // mapping correctly. Comparing driver.admin_ID in JavaScript fails on HANA because
+    // raw DB results return the FK column as ADMIN_ID (uppercase), not admin_ID.
+    const driver = await db.run(
+      SELECT.one.from("tracker.Drivers")
+        .columns("ID")
+        .where({ ID: driverId, admin_ID: admin.ID })
+    );
+    if (!driver) {
       return req.reject(404, "Driver not found");
     }
 
@@ -269,6 +272,7 @@ module.exports = cds.service.impl(function () {
       SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: driverId })
     );
   });
+
 
   this.on("startTrip", async (req) => {
     return withOperationMetrics("startTrip", async () => {
