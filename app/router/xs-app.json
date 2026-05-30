@@ -8,8 +8,8 @@
   "routes": [
     {
       "source": "^/login$",
-      "target": "/comlocationtrackerlocationtracker/index.html",
-      "service": "html5-apps-repo-rt",
+      "target": "/do/admin-login-redirect",
+      "destination": "srv-api",
       "authenticationType": "xsuaa"
     },
     {

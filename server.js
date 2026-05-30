@@ -61,6 +61,14 @@ cds.on("bootstrap", (app) => {
 
   app.use(cookieParser());
 
+  // After XSUAA authenticates the admin via the /login route, the AppRouter forwards
+  // the request here. We immediately redirect the browser to the real app URL so that
+  // the UI5 bootstrap resolves "./" correctly against /comlocationtrackerlocationtracker/
+  // instead of against /login (which would cause all Component.js/manifest.json loads to 503).
+  app.get("/do/admin-login-redirect", (req, res) => {
+    res.redirect(302, "/comlocationtrackerlocationtracker/index.html");
+  });
+
   const dbPromise = cds.connect.to("db");
   const driverSelectFields = ["ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID"];
 
