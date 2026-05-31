@@ -372,9 +372,12 @@ sap.ui.define([
           await this._loadDriverList();
           return;
         }
-        // Authenticated via XSUAA but does not have the FleetAdmin role.
-        this._setView("error401", null);
-        return;
+        if (adminProfile) {
+          // Authenticated via XSUAA but does not have the FleetAdmin role.
+          this._setView("error401", null);
+          return;
+        }
+        // adminProfile is null → user has no XSUAA session, fall through to loginPage.
       } catch (error) {
         // 401 means user is not XSUAA-authenticated — show the login page.
         // Any other error also falls through to the login page.
@@ -850,12 +853,35 @@ sap.ui.define([
     },
 
     _getAdminProfile: async function () {
-      const response = await this._get("/tracker/me()");
+      // Use redirect:"manual" so the approuter's XSUAA 302-redirect to
+      // accounts.sap.com is NOT followed by the browser.  Instead we see
+      // a "type: opaqueredirect" response and can treat it as "not logged in".
+      var response = await fetch("/tracker/me()", {
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        redirect: "manual"
+      });
+
+      // An opaque redirect (type === "opaqueredirect") means the approuter
+      // tried to send us to the IDP login page — treat as unauthenticated.
+      if (response.type === "opaqueredirect" || response.status === 0) {
+        return null;
+      }
+
+      if (!response.ok) {
+        var error = new Error(await this._extractError(response));
+        error.status = response.status;
+        throw error;
+      }
+
+      var data = await response.json();
 
       return {
-        name: response && response.name ? response.name : "Fleet Admin",
-        email: response && response.email ? response.email : "",
-        isFleetAdmin: Boolean(response && response.isAdmin)
+        name: data && data.name ? data.name : "Fleet Admin",
+        email: data && data.email ? data.email : "",
+        isFleetAdmin: Boolean(data && data.isAdmin)
       };
     }
   });
