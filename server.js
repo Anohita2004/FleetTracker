@@ -60,6 +60,7 @@ cds.on("bootstrap", (app) => {
   }
 
   app.use(cookieParser());
+  app.use(require("express").json());
 
   // After XSUAA authenticates the admin via the /login route, the AppRouter forwards
   // the request here. We immediately redirect the browser to the real app URL so that
