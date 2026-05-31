@@ -89,7 +89,14 @@
                         <ObjectStatus
                           text="{appState>activityStatus}"
                           state="{= ${appState>activityStatus} === 'On Trip' ? 'Success' : 'None' }" />
-                        <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteDriver" />
+                        <HBox>
+                          <Button icon="sap-icon://decline" type="Transparent" press=".onDeleteDriver"
+                                  visible="{= ${appState>isActive} }" tooltip="Deactivate" />
+                          <Button icon="sap-icon://activate" type="Transparent" press=".onReactivateDriver"
+                                  visible="{= !${appState>isActive} }" tooltip="Reactivate" />
+                          <Button icon="sap-icon://delete" type="Transparent" press=".onPermanentlyDeleteDriver"
+                                  visible="{= !${appState>isActive} }" tooltip="Permanently Delete" />
+                        </HBox>
                       </cells>
                     </ColumnListItem>
                   </items>

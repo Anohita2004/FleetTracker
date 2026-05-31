@@ -72,6 +72,12 @@ service TrackerService @(path : '/tracker') {
   @requires: 'FleetAdmin'
   action deleteDriver(driverId : UUID) returns Drivers;
 
+  @requires: 'FleetAdmin'
+  action reactivateDriver(driverId : UUID) returns Drivers;
+
+  @requires: 'FleetAdmin'
+  action permanentlyDeleteDriver(driverId : UUID) returns String;
+
   @requires: 'Driver'
   action startTrip(title : String) returns Trips;
 

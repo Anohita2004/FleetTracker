@@ -150,8 +150,8 @@ sap.ui.define([
     },
 
     onDeleteDriver: function (oEvent) {
-      const context = oEvent.getSource().getBindingContext("appState");
-      const driverId = context && context.getProperty("ID");
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
       if (!driverId) {
         return;
       }
@@ -164,11 +164,64 @@ sap.ui.define([
           try {
             await this._adminPost("/tracker/deleteDriver", { driverId });
             await this._loadDriverList();
+            MessageToast.show("Driver deactivated");
           } catch (error) {
             MessageBox.error(error.message || "Unable to deactivate driver");
           }
         }.bind(this)
       });
+    },
+
+    onReactivateDriver: function (oEvent) {
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
+      if (!driverId) {
+        return;
+      }
+
+      MessageBox.confirm("Reactivate this driver?", {
+        onClose: async function (action) {
+          if (action !== MessageBox.Action.OK) {
+            return;
+          }
+          try {
+            await this._adminPost("/tracker/reactivateDriver", { driverId: driverId });
+            await this._loadDriverList();
+            MessageToast.show("Driver reactivated");
+          } catch (error) {
+            MessageBox.error(error.message || "Unable to reactivate driver");
+          }
+        }.bind(this)
+      });
+    },
+
+    onPermanentlyDeleteDriver: function (oEvent) {
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
+      var driverName = context && context.getProperty("name");
+      if (!driverId) {
+        return;
+      }
+
+      MessageBox.warning(
+        "Permanently delete driver '" + (driverName || "Unknown") + "'?\n\nThis will remove all associated trips and location data. This action cannot be undone.",
+        {
+          actions: ["Delete", MessageBox.Action.CANCEL],
+          emphasizedAction: MessageBox.Action.CANCEL,
+          onClose: async function (action) {
+            if (action !== "Delete") {
+              return;
+            }
+            try {
+              await this._adminPost("/tracker/permanentlyDeleteDriver", { driverId: driverId });
+              await this._loadDriverList();
+              MessageToast.show("Driver permanently deleted");
+            } catch (error) {
+              MessageBox.error(error.message || "Unable to delete driver");
+            }
+          }.bind(this)
+        }
+      );
     },
 
     onStartTracking: async function () {

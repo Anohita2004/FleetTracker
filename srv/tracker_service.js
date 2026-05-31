@@ -1,11 +1,15 @@
 const cds = require("@sap/cds");
 const bcrypt = require("bcryptjs");
-const { SELECT, INSERT, UPDATE } = cds.ql;
+const { SELECT, INSERT, UPDATE, DELETE } = cds.ql;
 const SNAPSHOT_INTERVAL_MS = 15 * 60 * 1000;
 const PASSWORD_SALT_ROUNDS = 12;
 
 module.exports = cds.service.impl(function () {
   const { Admins, Drivers, Trips, LocationPoints, MetricSnapshots } = this.entities;
+
+  // Direct DB connection — bypasses the service projection so that
+  // write-only columns like passwordHash are not silently stripped.
+  const dbDirectPromise = cds.connect.to("db");
   const operationMetrics = {
     startTrip: createMetricBucket(),
     stopTrip: createMetricBucket(),
@@ -167,7 +171,9 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can create drivers");
 
-    const db = cds.tx(req);
+    // Use the direct DB handle so passwordHash (which is excluded from the
+    // service projection) is not silently stripped from INSERT / UPDATE.
+    const rawDb = await dbDirectPromise;
     const email = normalizeEmail(req.data.email);
     const password = String(req.data.password || "");
     if (!email) return req.reject(400, "Driver email is required");
@@ -177,13 +183,17 @@ module.exports = cds.service.impl(function () {
 
     const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
 
-    const existingDriver = await getDriverByEmail(db, email);
+    const existingDriver = await rawDb.run(
+      SELECT.one.from("tracker.Drivers")
+        .columns("ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID")
+        .where({ email })
+    );
     if (existingDriver && existingDriver.admin_ID !== admin.ID) {
       return req.reject(409, "A driver with this email is already assigned to another admin");
     }
 
     if (existingDriver) {
-      await db.run(UPDATE("tracker.Drivers")
+      await rawDb.run(UPDATE("tracker.Drivers")
         .set({
           name: req.data.name || existingDriver.name,
           phone: req.data.phone || existingDriver.phone,
@@ -192,7 +202,7 @@ module.exports = cds.service.impl(function () {
           isActive: true
         })
         .where({ ID: existingDriver.ID }));
-      return db.run(
+      return rawDb.run(
         SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: existingDriver.ID })
       );
     }
@@ -208,8 +218,8 @@ module.exports = cds.service.impl(function () {
       admin_ID: admin.ID
     };
 
-    await db.run(INSERT.into("tracker.Drivers").entries(entry));
-    return db.run(
+    await rawDb.run(INSERT.into("tracker.Drivers").entries(entry));
+    return rawDb.run(
       SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: entry.ID })
     );
   });
@@ -246,14 +256,14 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can deactivate drivers");
 
-    const db = cds.tx(req);
+    const rawDb = await dbDirectPromise;
     const driverId = req.data?.driverId;
     if (!driverId) return req.reject(400, "driverId is required");
 
     // Query with admin_ID in the WHERE clause so CAP/HANA handles the column name
     // mapping correctly. Comparing driver.admin_ID in JavaScript fails on HANA because
     // raw DB results return the FK column as ADMIN_ID (uppercase), not admin_ID.
-    const driver = await db.run(
+    const driver = await rawDb.run(
       SELECT.one.from("tracker.Drivers")
         .columns("ID")
         .where({ ID: driverId, admin_ID: admin.ID })
@@ -262,15 +272,76 @@ module.exports = cds.service.impl(function () {
       return req.reject(404, "Driver not found");
     }
 
-    await db.run(
+    await rawDb.run(
       UPDATE("tracker.Drivers")
         .set({ isActive: false })
         .where({ ID: driverId })
     );
 
-    return db.run(
+    return rawDb.run(
       SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: driverId })
     );
+  });
+
+  this.on("reactivateDriver", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can reactivate drivers");
+
+    const rawDb = await dbDirectPromise;
+    const driverId = req.data?.driverId;
+    if (!driverId) return req.reject(400, "driverId is required");
+
+    const driver = await rawDb.run(
+      SELECT.one.from("tracker.Drivers")
+        .columns("ID", "isActive")
+        .where({ ID: driverId, admin_ID: admin.ID })
+    );
+    if (!driver) return req.reject(404, "Driver not found");
+    if (driver.isActive) return req.reject(400, "Driver is already active");
+
+    await rawDb.run(
+      UPDATE("tracker.Drivers")
+        .set({ isActive: true })
+        .where({ ID: driverId })
+    );
+
+    return rawDb.run(
+      SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: driverId })
+    );
+  });
+
+  this.on("permanentlyDeleteDriver", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can permanently delete drivers");
+
+    const rawDb = await dbDirectPromise;
+    const driverId = req.data?.driverId;
+    if (!driverId) return req.reject(400, "driverId is required");
+
+    const driver = await rawDb.run(
+      SELECT.one.from("tracker.Drivers")
+        .columns("ID")
+        .where({ ID: driverId, admin_ID: admin.ID })
+    );
+    if (!driver) return req.reject(404, "Driver not found");
+
+    // Cascade-delete associated data: LocationPoints → Trips → Sessions → Driver
+    const trips = await rawDb.run(
+      SELECT.from("tracker.Trips").columns("ID").where({ driver_ID: driverId })
+    );
+    const tripIds = trips.map((t) => t.ID);
+
+    if (tripIds.length > 0) {
+      for (const tid of tripIds) {
+        await rawDb.run(DELETE.from("tracker.LocationPoints").where({ trip_ID: tid }));
+      }
+      await rawDb.run(DELETE.from("tracker.Trips").where({ driver_ID: driverId }));
+    }
+
+    await rawDb.run(DELETE.from("tracker.DriverSessions").where({ driver_ID: driverId }));
+    await rawDb.run(DELETE.from("tracker.Drivers").where({ ID: driverId }));
+
+    return { message: "Driver permanently deleted" };
   });
 
 
