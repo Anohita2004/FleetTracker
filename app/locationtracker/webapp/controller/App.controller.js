@@ -58,6 +58,9 @@ sap.ui.define([
     },
 
     onAdminLoginPress: function () {
+      try {
+        window.sessionStorage.setItem("adminLoginIntent", "true");
+      } catch (e) { /* private browsing may block sessionStorage */ }
       window.location.href = "/login";
     },
 
@@ -83,7 +86,7 @@ sap.ui.define([
     },
 
     onLogoutPress: async function () {
-      const role = this._viewModel.getProperty("/role");
+      var role = this._viewModel.getProperty("/role");
       if (role === "driver") {
         try {
           await this._post("/drivers/logout", {});
@@ -95,6 +98,11 @@ sap.ui.define([
         return;
       }
 
+      // Clear the admin login intent so the next page load shows
+      // the auth chooser instead of auto-detecting the XSUAA session.
+      try {
+        window.sessionStorage.removeItem("adminLoginIntent");
+      } catch (e) { /* private browsing */ }
       window.location.href = "/do/logout";
     },
 
@@ -364,23 +372,36 @@ sap.ui.define([
         // Driver session not active.
       }
 
+      // Only probe the XSUAA-protected admin endpoint when the user
+      // explicitly clicked "Login as Fleet Admin".  Without this gate
+      // the app would auto-detect an existing XSUAA session and skip
+      // the auth chooser page entirely.
+      var adminLoginIntent = false;
       try {
-        const adminProfile = await this._getAdminProfile();
-        if (adminProfile && adminProfile.isFleetAdmin) {
-          this._viewModel.setProperty("/adminProfile", adminProfile);
-          this._setView("adminDashboard", "admin");
-          await this._loadDriverList();
-          return;
+        adminLoginIntent = window.sessionStorage.getItem("adminLoginIntent") === "true";
+      } catch (e) { /* private browsing */ }
+
+      if (adminLoginIntent) {
+        try {
+          var adminProfile = await this._getAdminProfile();
+          if (adminProfile && adminProfile.isFleetAdmin) {
+            this._viewModel.setProperty("/adminProfile", adminProfile);
+            this._setView("adminDashboard", "admin");
+            await this._loadDriverList();
+            return;
+          }
+          if (adminProfile) {
+            // Authenticated via XSUAA but does not have the FleetAdmin role.
+            this._setView("error401", null);
+            return;
+          }
+        } catch (error) {
+          // XSUAA auth failed — fall through to login page.
         }
-        if (adminProfile) {
-          // Authenticated via XSUAA but does not have the FleetAdmin role.
-          this._setView("error401", null);
-          return;
-        }
-        // adminProfile is null → user has no XSUAA session, fall through to loginPage.
-      } catch (error) {
-        // 401 means user is not XSUAA-authenticated — show the login page.
-        // Any other error also falls through to the login page.
+        // Admin login was intended but auth failed — clear the intent.
+        try {
+          window.sessionStorage.removeItem("adminLoginIntent");
+        } catch (e) { /* private browsing */ }
       }
 
       this._setView("loginPage", null);
