@@ -103,16 +103,31 @@ cds.on("bootstrap", (app) => {
     return normalizeDriverRecord(res);
   };
 
+  const normalizeTripRecord = (trip) => {
+    if (!trip) return null;
+    return {
+      ...trip,
+      ID: trip.ID || trip.id || trip.Id,
+      title: trip.title || trip.TITLE,
+      driver_ID: trip.driver_ID || trip.DRIVER_ID,
+      startedAt: trip.startedAt || trip.STARTEDAT,
+      endedAt: trip.endedAt || trip.ENDEDAT,
+      status: trip.status || trip.STATUS
+    };
+  };
+
   const getTripById = async (db, tripId) => {
-    return db.run(SELECT.one.from("tracker.Trips").where({ ID: tripId }));
+    const res = await db.run(SELECT.one.from("tracker.Trips").where({ ID: tripId }));
+    return normalizeTripRecord(res);
   };
 
   const getActiveTrip = async (db, driverId) => {
-    return db.run(
+    const res = await db.run(
       SELECT.one.from("tracker.Trips")
         .where({ status: "ACTIVE", driver_ID: driverId })
         .orderBy("startedAt desc")
     );
+    return normalizeTripRecord(res);
   };
 
   app.use((req, res, next) => {
@@ -384,35 +399,51 @@ cds.on("bootstrap", (app) => {
           .where({ driver_ID: req.driver.ID, status: "COMPLETED" })
           .columns("count(1) as count")
       );
-      const [pointCountRow] = await db.run(
-        SELECT.from("tracker.LocationPoints")
-          .where({ "trip.driver_ID": req.driver.ID })
-          .columns("count(1) as count")
-      );
-      const [accuracyAverageRow] = await db.run(
-        SELECT.from("tracker.LocationPoints")
-          .where({ "trip.driver_ID": req.driver.ID, accuracy: { "!=": null } })
-          .columns("avg(accuracy) as avgAccuracy")
-      );
 
-      const completedTrips = await db.run(
+      const trips = await db.run(
         SELECT.from("tracker.Trips")
-          .where({ driver_ID: req.driver.ID, status: "COMPLETED" })
-          .columns("startedAt", "endedAt")
+          .columns("ID", "startedAt", "endedAt", "status")
+          .where({ driver_ID: req.driver.ID })
       );
+      const tripIds = trips.map((t) => t.ID || t.id || t.Id);
 
-      const totalTrips = Number(tripCountRow?.count || 0);
-      const totalCompletedTrips = Number(completedTripCountRow?.count || 0);
-      const totalPoints = Number(pointCountRow?.count || 0);
+      let totalPoints = 0;
+      let avgGpsAccuracy = 0;
+
+      if (tripIds.length > 0) {
+        const [pointCountRow] = await db.run(
+          SELECT.from("tracker.LocationPoints")
+            .where({ trip_ID: { in: tripIds } })
+            .columns("count(1) as count")
+        );
+        totalPoints = Number(pointCountRow?.count || pointCountRow?.COUNT || 0);
+
+        const [accuracyAverageRow] = await db.run(
+          SELECT.from("tracker.LocationPoints")
+            .where({ trip_ID: { in: tripIds }, accuracy: { "!=": null } })
+            .columns("avg(accuracy) as avgAccuracy")
+        );
+        avgGpsAccuracy = roundToTwoDecimals(Number(accuracyAverageRow?.avgAccuracy || accuracyAverageRow?.AVGACCURACY || 0));
+      }
+
+      const totalTrips = Number(tripCountRow?.count || tripCountRow?.COUNT || 0);
+      const totalCompletedTrips = Number(completedTripCountRow?.count || completedTripCountRow?.COUNT || 0);
       const completionRate = totalTrips ? roundToTwoDecimals((totalCompletedTrips / totalTrips) * 100) : 0;
       const avgPointsPerTrip = totalTrips ? roundToTwoDecimals(totalPoints / totalTrips) : 0;
-      const avgGpsAccuracy = roundToTwoDecimals(Number(accuracyAverageRow?.avgAccuracy || 0));
 
-      const durations = completedTrips
-        .map((trip) => ({
-          startedAt: trip.startedAt ? new Date(trip.startedAt).getTime() : null,
-          endedAt: trip.endedAt ? new Date(trip.endedAt).getTime() : null
-        }))
+      const durations = trips
+        .filter((trip) => {
+          const status = trip.status || trip.STATUS;
+          return status === "COMPLETED";
+        })
+        .map((trip) => {
+          const startedAt = trip.startedAt || trip.STARTEDAT;
+          const endedAt = trip.endedAt || trip.ENDEDAT;
+          return {
+            startedAt: startedAt ? new Date(startedAt).getTime() : null,
+            endedAt: endedAt ? new Date(endedAt).getTime() : null
+          };
+        })
         .filter((trip) => Number.isFinite(trip.startedAt) && Number.isFinite(trip.endedAt) && trip.endedAt >= trip.startedAt)
         .map((trip) => trip.endedAt - trip.startedAt);
 
