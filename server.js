@@ -73,12 +73,34 @@ cds.on("bootstrap", (app) => {
   const dbPromise = cds.connect.to("db");
   const driverSelectFields = ["ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID"];
 
+  const normalizeDriverRecord = (driver) => {
+    if (!driver) return null;
+    
+    let isActive = driver.isActive !== undefined ? driver.isActive : driver.ISACTIVE;
+    if (typeof isActive === "number") isActive = isActive === 1;
+    else if (typeof isActive === "string") isActive = (isActive.trim().toLowerCase() === "true" || isActive.trim() === "1");
+    else isActive = Boolean(isActive);
+
+    return {
+      ID: driver.ID || driver.id || driver.Id,
+      name: driver.name || driver.NAME,
+      email: driver.email || driver.EMAIL,
+      vehicleId: driver.vehicleId || driver.VEHICLEID,
+      phone: driver.phone || driver.PHONE,
+      passwordHash: driver.passwordHash || driver.PASSWORDHASH,
+      isActive,
+      admin_ID: driver.admin_ID || driver.ADMIN_ID
+    };
+  };
+
   const getDriverByEmail = async (db, email) => {
-    return db.run(SELECT.one.from("tracker.Drivers").where({ email: normalizeEmail(email) }));
+    const res = await db.run(SELECT.one.from("tracker.Drivers").where({ email: normalizeEmail(email) }));
+    return normalizeDriverRecord(res);
   };
 
   const getDriverById = async (db, driverId) => {
-    return db.run(SELECT.one.from("tracker.Drivers").columns(...driverSelectFields).where({ ID: driverId }));
+    const res = await db.run(SELECT.one.from("tracker.Drivers").columns(...driverSelectFields).where({ ID: driverId }));
+    return normalizeDriverRecord(res);
   };
 
   const getTripById = async (db, tripId) => {
