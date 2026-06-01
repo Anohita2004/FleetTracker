@@ -74,6 +74,10 @@ sap.ui.define([
           password: credentials.password
         });
 
+        try {
+          window.sessionStorage.setItem("driverLoginIntent", "true");
+        } catch (e) { /* private browsing */ }
+
         this._viewModel.setProperty("/driverLogin/password", "");
         this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
         await this._checkAuthStatus();
@@ -358,18 +362,29 @@ sap.ui.define([
         return;
       }
 
+      var driverLoginIntent = false;
       try {
-        const driverResponse = await this._get("/drivers/me");
-        if (driverResponse && driverResponse.driver) {
-          this._viewModel.setProperty("/driverProfile", driverResponse.driver || null);
-          this._viewModel.setProperty("/driverCsrfToken", driverResponse.csrfToken || null);
-          this._setView("driverDashboard", "driver");
-          await this._loadActiveTrip();
-          await this._refreshMetrics();
-          return;
+        driverLoginIntent = window.sessionStorage.getItem("driverLoginIntent") === "true";
+      } catch (e) { /* private browsing */ }
+
+      if (driverLoginIntent) {
+        try {
+          const driverResponse = await this._get("/drivers/me");
+          if (driverResponse && driverResponse.driver) {
+            this._viewModel.setProperty("/driverProfile", driverResponse.driver || null);
+            this._viewModel.setProperty("/driverCsrfToken", driverResponse.csrfToken || null);
+            this._setView("driverDashboard", "driver");
+            await this._loadActiveTrip();
+            await this._refreshMetrics();
+            return;
+          }
+        } catch (error) {
+          // Driver session not active.
         }
-      } catch (error) {
-        // Driver session not active.
+        
+        try {
+          window.sessionStorage.removeItem("driverLoginIntent");
+        } catch (e) { /* private browsing */ }
       }
 
       // Only probe the XSUAA-protected admin endpoint when the user
