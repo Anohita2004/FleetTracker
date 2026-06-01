@@ -3,7 +3,9 @@ ID: locationtracker
 extends: locationtracker
 
 parameters:
-  JWT_SECRET_KEY: fa057d199548f5a179505177eb7bd2de97454fa62836c60ba505f2c8cd4aa6b9
+  # The JWT_SECRET_KEY should be injected at deployment time via CI/CD or platform secrets manager
+  # (e.g. using `cf set-env locationtracker-srv JWT_SECRET_KEY "..."`)
+  JWT_SECRET_KEY: ~{JWT_SECRET_KEY}
 
 
 
