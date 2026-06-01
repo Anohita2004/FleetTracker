@@ -364,6 +364,23 @@ cds.on("bootstrap", (app) => {
     }
   });
 
+  const normalizePointRecord = (point) => {
+    if (!point) return null;
+    return {
+      ...point,
+      ID: point.ID || point.id || point.Id,
+      trip_ID: point.trip_ID || point.TRIP_ID,
+      latitude: point.latitude !== undefined ? point.latitude : point.LATITUDE,
+      longitude: point.longitude !== undefined ? point.longitude : point.LONGITUDE,
+      accuracy: point.accuracy !== undefined ? point.accuracy : point.ACCURACY,
+      altitude: point.altitude !== undefined ? point.altitude : point.ALTITUDE,
+      speed: point.speed !== undefined ? point.speed : point.SPEED,
+      heading: point.heading !== undefined ? point.heading : point.HEADING,
+      recordedAt: point.recordedAt || point.RECORDEDAT,
+      source: point.source || point.SOURCE
+    };
+  };
+
   app.get("/drivers/path/:tripId", requireDriverAuth, async (req, res, next) => {
     try {
       const db = await dbPromise;
@@ -382,7 +399,8 @@ cds.on("bootstrap", (app) => {
           .orderBy("recordedAt asc")
       );
 
-      return res.json({ value: points });
+      const normalizedPoints = (points || []).map(normalizePointRecord);
+      return res.json({ value: normalizedPoints });
     } catch (error) {
       return next(error);
     }
