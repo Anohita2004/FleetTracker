@@ -354,6 +354,7 @@ cds.on("bootstrap", (app) => {
         speed: req.body?.speed ?? null,
         heading: req.body?.heading ?? null,
         recordedAt: req.body?.recordedAt || nowISO(),
+        createdAt: nowISO(),
         source: req.body?.source || "browser-geolocation"
       };
 
@@ -377,6 +378,7 @@ cds.on("bootstrap", (app) => {
       speed: point.speed !== undefined ? point.speed : point.SPEED,
       heading: point.heading !== undefined ? point.heading : point.HEADING,
       recordedAt: point.recordedAt || point.RECORDEDAT,
+      createdAt: point.createdAt || point.CREATEDAT,
       source: point.source || point.SOURCE
     };
   };
@@ -427,6 +429,8 @@ cds.on("bootstrap", (app) => {
 
       let totalPoints = 0;
       let avgGpsAccuracy = 0;
+      let ingestSuccessRate = 0;
+      let avgIngestLatencyMs = 0;
 
       if (tripIds.length > 0) {
         const [pointCountRow] = await db.run(
@@ -442,6 +446,28 @@ cds.on("bootstrap", (app) => {
             .columns("avg(accuracy) as avgAccuracy")
         );
         avgGpsAccuracy = roundToTwoDecimals(Number(accuracyAverageRow?.avgAccuracy || accuracyAverageRow?.AVGACCURACY || 0));
+
+        const timePoints = await db.run(
+          SELECT.from("tracker.LocationPoints")
+            .where({ trip_ID: { in: tripIds } })
+            .columns("recordedAt", "createdAt")
+        );
+
+        const latencies = timePoints
+          .map((p) => {
+            const rAt = p.recordedAt || p.RECORDEDAT;
+            const cAt = p.createdAt || p.CREATEDAT;
+            return rAt && cAt ? new Date(cAt).getTime() - new Date(rAt).getTime() : -1;
+          })
+          .filter((l) => l >= 0);
+
+        if (totalPoints > 0) {
+          ingestSuccessRate = 100;
+        }
+
+        if (latencies.length > 0) {
+          avgIngestLatencyMs = roundToTwoDecimals(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+        }
       }
 
       const totalTrips = Number(tripCountRow?.count || tripCountRow?.COUNT || 0);
@@ -478,6 +504,8 @@ cds.on("bootstrap", (app) => {
         avgPointsPerTrip,
         avgGpsAccuracy,
         avgSessionDurationMs,
+        ingestSuccessRate,
+        avgIngestLatencyMs,
         ingestAttempts: 0,
         ingestSuccess: 0,
         ingestFailure: 0,
