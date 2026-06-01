@@ -505,12 +505,7 @@ cds.on("bootstrap", (app) => {
         avgGpsAccuracy,
         avgSessionDurationMs,
         ingestSuccessRate,
-        avgIngestLatencyMs,
-        ingestAttempts: 0,
-        ingestSuccess: 0,
-        ingestFailure: 0,
-        ingestSuccessRate: 0,
-        avgIngestLatencyMs: 0
+        avgIngestLatencyMs
       });
     } catch (error) {
       return next(error);
