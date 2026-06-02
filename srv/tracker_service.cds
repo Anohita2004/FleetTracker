@@ -50,6 +50,9 @@ service TrackerService @(path : '/tracker') {
   ]
   entity Vehicles as projection on tracker.Vehicles;
 
+  @restrict: [
+    { grant: 'READ', to: 'FleetAdmin' }
+  ]
   entity MetricSnapshots as projection on tracker.MetricSnapshots;
 
   function me() returns UserContext;
