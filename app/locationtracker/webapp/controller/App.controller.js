@@ -297,11 +297,12 @@ sap.ui.define([
         this._watchId = null;
       }
 
+      this._viewModel.setProperty("/tracking", false);
+      this._viewModel.setProperty("/statusText", "Tracking stopped");
+
       try {
         const stoppedTrip = await this._post("/drivers/stopTrip", { tripId: trip.ID });
         this._viewModel.setProperty("/currentTrip", stoppedTrip);
-        this._viewModel.setProperty("/tracking", false);
-        this._viewModel.setProperty("/statusText", "Tracking stopped");
         await this._refreshMetrics();
         MessageToast.show("Trip stopped");
       } catch (error) {
