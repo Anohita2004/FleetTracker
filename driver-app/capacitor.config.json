@@ -1,5 +1,10 @@
 {
   "appId": "com.fleet.driverapp",
   "appName": "Fleet Driver",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
 }

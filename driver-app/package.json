@@ -19,6 +19,8 @@
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
     "@capacitor/geolocation": "^8.2.0",
-    "@capacitor/preferences": "^8.0.1"
+    "@capacitor/keyboard": "^8.0.3",
+    "@capacitor/preferences": "^8.0.1",
+    "@tailwindcss/postcss": "^4.3.0"
   }
 }
