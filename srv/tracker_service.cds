@@ -18,8 +18,7 @@ service TrackerService @(path : '/tracker') {
   entity Admins as projection on tracker.Admins;
 
   @restrict: [
-    { grant: 'READ', to: ['Driver', 'FleetAdmin'] },
-    { grant: ['CREATE', 'UPDATE', 'DELETE'], to: 'FleetAdmin' }
+    { grant: 'READ', to: ['Driver', 'FleetAdmin'] }
   ]
   entity Drivers as projection on tracker.Drivers {
     ID,
@@ -37,14 +36,12 @@ service TrackerService @(path : '/tracker') {
   };
 
   @restrict: [
-    { grant: 'READ', to: ['Driver', 'FleetAdmin'] },
-    { grant: ['CREATE', 'UPDATE', 'DELETE'], to: 'FleetAdmin' }
+    { grant: 'READ', to: ['Driver', 'FleetAdmin'] }
   ]
   entity Trips as projection on tracker.Trips;
 
   @restrict: [
-    { grant: 'READ', to: ['Driver', 'FleetAdmin'] },
-    { grant: ['CREATE', 'UPDATE', 'DELETE'], to: 'FleetAdmin' }
+    { grant: 'READ', to: ['Driver', 'FleetAdmin'] }
   ]
   entity LocationPoints as projection on tracker.LocationPoints;
 
