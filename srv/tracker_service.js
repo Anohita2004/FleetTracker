@@ -7,9 +7,6 @@ const PASSWORD_SALT_ROUNDS = 12;
 module.exports = cds.service.impl(function () {
   const { Admins, Drivers, Trips, LocationPoints, MetricSnapshots } = this.entities;
 
-  // Direct DB connection — bypasses the service projection so that
-  // write-only columns like passwordHash are not silently stripped.
-  const dbDirectPromise = cds.connect.to("db");
   const operationMetrics = {
     startTrip: createMetricBucket(),
     stopTrip: createMetricBucket(),
@@ -171,9 +168,7 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can create drivers");
 
-    // Use the direct DB handle so passwordHash (which is excluded from the
-    // service projection) is not silently stripped from INSERT / UPDATE.
-    const rawDb = await dbDirectPromise;
+    const rawDb = cds.tx(req);
     const email = normalizeEmail(req.data.email);
     const password = String(req.data.password || "");
     if (!email) return req.reject(400, "Driver email is required");
@@ -256,7 +251,7 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can deactivate drivers");
 
-    const rawDb = await dbDirectPromise;
+    const rawDb = cds.tx(req);
     const driverId = req.data?.driverId;
     if (!driverId) return req.reject(400, "driverId is required");
 
@@ -287,7 +282,7 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can reactivate drivers");
 
-    const rawDb = await dbDirectPromise;
+    const rawDb = cds.tx(req);
     const driverId = req.data?.driverId;
     if (!driverId) return req.reject(400, "driverId is required");
 
@@ -314,7 +309,7 @@ module.exports = cds.service.impl(function () {
     const admin = await ensureAdminProfile(req);
     if (!admin) return req.reject(403, "Only fleet admins can permanently delete drivers");
 
-    const rawDb = await dbDirectPromise;
+    const rawDb = cds.tx(req);
     const driverId = req.data?.driverId;
     if (!driverId) return req.reject(400, "driverId is required");
 
