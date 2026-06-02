@@ -371,6 +371,10 @@ module.exports = cds.service.impl(function () {
       const result = await rejectIfNotTripDriver(req, tripId);
       if (!result) return null;
 
+      if (result.trip.status !== "ACTIVE") {
+        return req.reject(400, "Trip is not active");
+      }
+
       await UPDATE(Trips)
         .set({ status: "COMPLETED", endedAt: nowISO() })
         .where({ ID: tripId });
