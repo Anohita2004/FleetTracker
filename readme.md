@@ -4,6 +4,10 @@ A comprehensive, enterprise-ready SAP Cloud Application Programming Model (CAP) 
 
 This application offers a dual-dashboard architecture serving two distinct user personas: **Fleet Administrators** and **Drivers**, utilizing a hybrid authentication model combining SAP XSUAA and custom JWT-based authentication.
 
+## 📹 Live Demo & Walkthrough
+*(Embed or link your demonstration video here. Example: `[![Watch the video](https://img.youtube.com/vi/YOUR_VIDEO_ID/hqdefault.jpg)](https://youtu.be/YOUR_VIDEO_ID)`)*
+
+Since this application uses enterprise-grade SAP XSUAA for its Admin dashboard, public access is securely restricted. Please watch the video above to see the full dual-persona flow (Admin & Driver) in action!
 ## 🚀 Key Features
 
 ### Fleet Administrator Dashboard
@@ -50,13 +54,15 @@ Location_Tracker/
 └── package.json               # Node.js dependencies and run scripts
 ```
 
-## 🔒 Authentication Flow Deep Dive
+## 🔒 Security & Authentication Deep Dive
 
-The application employs a sophisticated routing mechanism to handle dual-identities seamlessly:
+The application employs a sophisticated routing mechanism to handle dual-identities seamlessly while enforcing strict enterprise security measures:
 1. **The Auth Chooser**: On a fresh session, users land on an Auth Chooser page to select their role. 
-2. **Admin Flow**: Redirects to SAP XSUAA. Upon successful login, the Approuter forwards the JWT token to the backend, unlocking the `@requires: 'FleetAdmin'` OData endpoints.
-3. **Driver Flow**: A custom Express route (`/drivers/login`) authenticates the driver's hashed password stored in HANA and issues an HTTP-Only JWT Cookie (`driver-jwt`).
-4. **Session Intent Gating**: Frontend `sessionStorage` tracks `adminLoginIntent` and `driverLoginIntent` to prevent unwanted auto-logins across fresh browser tabs, preserving a smooth user experience upon hard refreshes without sacrificing security.
+2. **Admin Flow (RBAC)**: Redirects to SAP XSUAA. Upon successful login, the Approuter forwards the JWT token to the backend, unlocking the strictly gated `@requires: 'FleetAdmin'` OData endpoints.
+3. **Driver Flow**: A custom Express route (`/drivers/login`) authenticates the driver's password (hashed securely via `bcryptjs` and stored in HANA) and issues a custom JWT.
+4. **XSS Mitigation**: The custom Driver JWT is delivered strictly via an `httpOnly`, `Secure`, `SameSite=Strict` cookie, making it inaccessible to malicious JavaScript.
+5. **CSRF Protection**: Native SAPUI5 CSRF protection (`csrfProtection: true` in `xs-app.json`) is enabled for Admins. For Drivers, a custom token exchange mechanism requires an `x-driver-csrf-token` header on all POST requests to prevent Cross-Site Request Forgery.
+6. **IDOR Prevention**: The backend strictly validates that drivers can only modify or stop their *own* trips by matching the requested `tripId` against their encoded JWT `driverId`.
 
 ## 🛠️ Local Development Setup
 
@@ -89,13 +95,15 @@ This project is fully configured for SAP BTP via the `mta.yaml` descriptor.
    cf deploy mta_archives/locationtracker_1.0.0.mtar
    ```
 
-## 📊 Database Schema Highlights
+## 📊 Database & Performance Highlights
 
-The application relies on a normalized CDS data model (`db/schema.cds`):
+The application relies on a normalized CDS data model (`db/schema.cds`) optimized for SAP HANA Cloud:
 - `Admins`: Tracks fleet managers.
 - `Drivers`: Stores driver details and securely hashed passwords.
 - `Trips`: Links drivers to their active/completed trips.
-- `LocationPoints`: High-frequency geolocation pings linked to trips, strictly tracking insertion latencies via standard CAP `managed` annotations (`createdAt`).
+- `LocationPoints`: High-frequency geolocation pings linked to trips.
+
+**Performance Optimization**: By leveraging SAP HANA's in-memory, columnar engine, the application aggregates massive volumes of `LocationPoints` (calculating metrics like *Average Session Duration* and *Average GPS Accuracy*) directly at the database layer via CDS QL. This prevents the Node.js backend from being bottlenecked by large data payloads during real-time dashboard refreshes.
 
 ## 🤝 Contribution Guidelines
 When making modifications, please ensure that:
