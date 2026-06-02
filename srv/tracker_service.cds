@@ -100,6 +100,7 @@ service TrackerService @(path : '/tracker') {
   @requires: 'Driver'
   function activeTrip() returns Trips;
 
+  @requires: 'FleetAdmin'
   function metrics() returns TrackerMetrics;
 }
 
