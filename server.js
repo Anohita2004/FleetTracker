@@ -593,6 +593,8 @@ cds.on("bootstrap", (app) => {
             return res.status(403).json({ error: "Fleet admins can only access their own drivers' trips" });
           }
         }
+      } else {
+        return res.status(403).json({ error: "Forbidden: authentication required" });
       }
 
       const points = await db.run(
