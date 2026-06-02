@@ -32,7 +32,13 @@ const issueDriverToken = (driver, csrfToken) => jwt.sign({
   csrf: csrfToken
 }, jwtSecret, { expiresIn: JWT_EXPIRES_IN });
 
-const readDriverToken = (req) => req.cookies?.[JWT_COOKIE_NAME];
+const readDriverToken = (req) => {
+  const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    return authHeader.substring(7);
+  }
+  return req.cookies?.[JWT_COOKIE_NAME];
+};
 const verifyDriverToken = (token) => {
   try {
     return jwt.verify(token, jwtSecret);
@@ -59,6 +65,11 @@ cds.on("bootstrap", (app) => {
     throw new Error("JWT_SECRET_KEY must be configured in production for driver JWT sessions.");
   }
 
+  const cors = require("cors");
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
   app.use(cookieParser());
   app.use(require("express").json());
 
@@ -218,7 +229,7 @@ cds.on("bootstrap", (app) => {
         maxAge: JWT_TTL_MS
       });
 
-      return res.json({
+      const response = {
         success: true,
         driver: {
           id: driver.ID,
@@ -226,7 +237,13 @@ cds.on("bootstrap", (app) => {
           email: driver.email
         },
         csrfToken
-      });
+      };
+
+      if (req.body?.mobile) {
+        response.token = token;
+      }
+
+      return res.json(response);
     } catch (error) {
       return next(error);
     }

@@ -1,0 +1,5 @@
+{
+  "appId": "com.fleet.driverapp",
+  "appName": "Fleet Driver",
+  "webDir": "dist"
+}
