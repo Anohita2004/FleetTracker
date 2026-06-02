@@ -309,6 +309,10 @@ cds.on("bootstrap", (app) => {
         return res.status(403).json({ error: "Drivers can only access their own trips" });
       }
 
+      if (trip.status !== "ACTIVE") {
+        return res.status(400).json({ error: "Trip is not active" });
+      }
+
       await db.run(
         UPDATE("tracker.Trips")
           .set({ status: "COMPLETED", endedAt: nowISO() })
