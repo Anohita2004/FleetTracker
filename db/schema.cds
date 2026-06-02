@@ -18,7 +18,7 @@ entity Drivers : cuid, managed {
 }
 entity Trips : cuid, managed {
   title     : String(120);
-  driver    : Association to Drivers not null;
+  driver    : Association to Drivers;
   startedAt : Timestamp;
   endedAt   : Timestamp;
   status    : String(20) enum {
