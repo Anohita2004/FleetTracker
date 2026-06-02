@@ -553,15 +553,17 @@ cds.on("bootstrap", (app) => {
 
         if (isDriver) {
           // Fail fast: check driver profile before fetching the trip
-          const driver = await db.run(
+          let driver = await db.run(
             SELECT.one.from("tracker.Drivers").where({ email })
           );
+          driver = normalizeDriverRecord(driver);
           if (!driver || !driver.isActive) {
             return res.status(403).json({ error: "No active driver profile is assigned to this login" });
           }
-          const trip = await db.run(
+          let trip = await db.run(
             SELECT.one.from("tracker.Trips").where({ ID: tripId })
           );
+          trip = normalizeTripRecord(trip);
           if (!trip) {
             return res.status(404).json({ error: "Trip not found" });
           }
@@ -576,15 +578,17 @@ cds.on("bootstrap", (app) => {
           if (!admin) {
             return res.status(403).json({ error: "No admin profile found for this login" });
           }
-          const trip = await db.run(
+          let trip = await db.run(
             SELECT.one.from("tracker.Trips").where({ ID: tripId })
           );
+          trip = normalizeTripRecord(trip);
           if (!trip) {
             return res.status(404).json({ error: "Trip not found" });
           }
-          const driver = await db.run(
+          let driver = await db.run(
             SELECT.one.from("tracker.Drivers").where({ ID: trip.driver_ID })
           );
+          driver = normalizeDriverRecord(driver);
           if (!driver || driver.admin_ID !== admin.ID) {
             return res.status(403).json({ error: "Fleet admins can only access their own drivers' trips" });
           }
