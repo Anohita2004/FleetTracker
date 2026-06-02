@@ -336,7 +336,7 @@ module.exports = cds.service.impl(function () {
     await rawDb.run(DELETE.from("tracker.DriverSessions").where({ driver_ID: driverId }));
     await rawDb.run(DELETE.from("tracker.Drivers").where({ ID: driverId }));
 
-    return { message: "Driver permanently deleted" };
+    return "Driver permanently deleted";
   });
 
 
