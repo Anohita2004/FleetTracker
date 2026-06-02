@@ -647,6 +647,14 @@ sap.ui.define([
 
       this._polyline.setLatLngs(this._points);
 
+      if (this._points.length === 0) {
+        if (this._marker) {
+          this._map.removeLayer(this._marker);
+          this._marker = null;
+        }
+        return;
+      }
+
       if (latestPoint) {
         if (!this._marker) {
           this._marker = window.L.marker(latestPoint).addTo(this._map);
@@ -659,6 +667,12 @@ sap.ui.define([
       }
 
       if (this._points.length > 1) {
+        const last = this._points[this._points.length - 1];
+        if (!this._marker) {
+          this._marker = window.L.marker(last).addTo(this._map);
+        } else {
+          this._marker.setLatLng(last);
+        }
         this._map.fitBounds(this._polyline.getBounds(), { padding: [20, 20] });
       } else if (this._points.length === 1) {
         if (!this._marker) {
