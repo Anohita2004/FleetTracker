@@ -543,7 +543,7 @@ sap.ui.define([
         this._recordClientUpdateLatency(clientUpdateEnd - clientUpdateStart);
         this._refreshMetrics();
       } catch (error) {
-        MessageBox.error(error.message || "Unable to persist the current position.");
+        this._viewModel.setProperty("/statusText", error.message || "Unable to persist the current position");
       }
     },
 
