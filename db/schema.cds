@@ -43,7 +43,7 @@ entity Vehicles : cuid, managed {
   vehicle_number      : Integer;
   type                : String;
   model               : Integer;
-  Registration_number : Integer;
+  registration_number : Integer;
   fuel_type           : String(20) enum {
     PETROL;
     DIESEL;
