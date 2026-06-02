@@ -2,7 +2,7 @@ namespace tracker;
 using { cuid, managed } from '@sap/cds/common';
 entity Admins : cuid, managed {
   name    : String(120);
-  email   : String(255);
+  email   : String(255) @assert.unique;
   drivers : Composition of many Drivers on drivers.admin = $self;
 }
 entity Drivers : cuid, managed {
