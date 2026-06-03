@@ -620,13 +620,14 @@ cds.on("bootstrap", (app) => {
         return res.status(403).json({ error: "Forbidden: authentication required" });
       }
 
-      const points = await db.run(
+      const rawPoints = await db.run(
         SELECT.from("tracker.LocationPoints")
           .where({ trip_ID: tripId })
           .orderBy("recordedAt asc")
       );
 
-      res.json({ value: points });
+      const normalizedPoints = (rawPoints || []).map(normalizePointRecord);
+      res.json({ value: normalizedPoints });
     } catch (error) {
       next(error);
     }
