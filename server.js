@@ -283,7 +283,11 @@ cds.on("bootstrap", (app) => {
   });
 
   app.post("/drivers/logout", requireDriverAuth, requireDriverCsrf, async (req, res) => {
-    res.clearCookie(JWT_COOKIE_NAME);
+    res.clearCookie(JWT_COOKIE_NAME, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict"
+    });
     return res.json({ ok: true });
   });
 
