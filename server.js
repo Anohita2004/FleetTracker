@@ -261,9 +261,6 @@ cds.on("bootstrap", (app) => {
   app.get("/drivers/me", async (req, res) => {
     const payload = getValidDriverPayload(req);
     if (!payload) return res.status(401).json({ error: "Driver login required" });
-    if (!payload) {
-      return res.status(401).json({ error: "Driver login required" });
-    }
 
     const db = await dbPromise;
     const driver = await getDriverById(db, payload.driverId);
