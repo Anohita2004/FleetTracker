@@ -238,8 +238,8 @@ cds.on("bootstrap", (app) => {
 
       res.cookie(JWT_COOKIE_NAME, token, {
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "Strict",
-        secure: true,
         maxAge: JWT_TTL_MS
       });
 
@@ -289,7 +289,7 @@ cds.on("bootstrap", (app) => {
   app.post("/drivers/logout", requireDriverAuth, requireDriverCsrf, async (req, res) => {
     res.clearCookie(JWT_COOKIE_NAME, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Strict"
     });
     return res.json({ ok: true });

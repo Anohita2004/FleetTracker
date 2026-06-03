@@ -745,7 +745,6 @@ sap.ui.define([
 
     _get: async function (url) {
       const response = await fetch(url, {
-        credentials: "include",
         headers: {
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -774,7 +773,6 @@ sap.ui.define([
 
       const response = await fetch(url, {
         method: "POST",
-        credentials: "include",
         headers,
         body: JSON.stringify(payload)
       });
@@ -790,7 +788,6 @@ sap.ui.define([
 
     _adminGet: async function (url) {
       const response = await fetch(url, {
-        credentials: "include",
         headers: {
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -819,7 +816,6 @@ sap.ui.define([
 
       const response = await fetch(url, {
         method: "POST",
-        credentials: "include",
         headers,
         body: JSON.stringify(payload)
       });
