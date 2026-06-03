@@ -632,17 +632,42 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.get("/tracker/activeTrip/:driverId", async (req, res, next) => {
+  const requireAdminAuth = async (req, res, next) => {
+    try {
+      if (process.env.NODE_ENV === "production" || cds.requires.auth?.kind === "xsuaa") {
+        if (!req.headers.authorization) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        const svc = getAuthService();
+        if (!svc) {
+          return res.status(500).json({ error: "XSUAA service not configured" });
+        }
+        const { createSecurityContext } = require("@sap/xssec");
+        let secCtx;
+        try {
+          secCtx = await createSecurityContext(svc, { req });
+        } catch (err) {
+          return res.status(401).json({ error: "Invalid or expired token" });
+        }
+        req.user = secCtx;
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  app.get("/tracker/activeTrip/:driverId", requireAdminAuth, async (req, res, next) => {
     try {
       const db = await cds.connect.to("db");
       const secCtx = req.user;
-      if (!secCtx) return res.status(401).json({ error: "Unauthorized" });
+      if (!secCtx && process.env.NODE_ENV === "production") return res.status(401).json({ error: "Unauthorized" });
 
-      const isAdmin = secCtx.checkLocalScope("FleetAdmin");
+      const isAdmin = secCtx ? secCtx.checkLocalScope("FleetAdmin") : true; // default true for local dev
       if (!isAdmin) {
         return res.status(403).json({ error: "Only fleet admins can access this" });
       }
-      const email = secCtx.id || secCtx.name;
+      const email = secCtx ? secCtx.getLogonName() : "admin@fleet.com";
       let admin = await db.run(
         SELECT.one.from("tracker.Admins").where({ email: String(email || "").trim().toLowerCase() })
       );
@@ -672,16 +697,16 @@ cds.on("bootstrap", (app) => {
     }
   });
 
-  app.get("/tracker/driverMetrics/:driverId", async (req, res, next) => {
+  app.get("/tracker/driverMetrics/:driverId", requireAdminAuth, async (req, res, next) => {
     try {
       const db = await cds.connect.to("db");
       const secCtx = req.user;
-      if (!secCtx) return res.status(401).json({ error: "Unauthorized" });
+      if (!secCtx && process.env.NODE_ENV === "production") return res.status(401).json({ error: "Unauthorized" });
 
-      const isAdmin = secCtx.checkLocalScope("FleetAdmin");
+      const isAdmin = secCtx ? secCtx.checkLocalScope("FleetAdmin") : true;
       if (!isAdmin) return res.status(403).json({ error: "Only fleet admins can access this" });
 
-      const email = secCtx.id || secCtx.name;
+      const email = secCtx ? secCtx.getLogonName() : "admin@fleet.com";
       let admin = await db.run(
         SELECT.one.from("tracker.Admins").where({ email: String(email || "").trim().toLowerCase() })
       );
