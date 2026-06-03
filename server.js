@@ -42,19 +42,24 @@ const issueDriverToken = (driver, csrfToken) => jwt.sign({
   csrf: csrfToken
 }, jwtSecret, { expiresIn: JWT_EXPIRES_IN });
 
-const readDriverToken = (req) => {
+const getValidDriverPayload = (req) => {
+  // Check Authorization header first (for Android app)
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
   if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
-    return authHeader.substring(7);
+    try {
+      const payload = jwt.verify(authHeader.substring(7), jwtSecret);
+      if (payload) return payload;
+    } catch (e) {}
   }
-  return req.cookies?.[JWT_COOKIE_NAME];
-};
-const verifyDriverToken = (token) => {
-  try {
-    return jwt.verify(token, jwtSecret);
-  } catch (error) {
-    return null;
+  // If header fails (e.g. it was an XSUAA token from AppRouter), or doesn't exist, check cookie
+  const cookieToken = req.cookies?.[JWT_COOKIE_NAME];
+  if (cookieToken) {
+    try {
+      const payload = jwt.verify(cookieToken, jwtSecret);
+      if (payload) return payload;
+    } catch (e) {}
   }
+  return null;
 };
 
 // Lazily built auth service – created once from XSUAA credentials on first request
@@ -160,12 +165,7 @@ cds.on("bootstrap", (app) => {
       return next();
     }
 
-    const token = readDriverToken(req);
-    if (!token) {
-      return next();
-    }
-
-    const payload = verifyDriverToken(token);
+    const payload = getValidDriverPayload(req);
     if (!payload) {
       return next();
     }
@@ -181,12 +181,7 @@ cds.on("bootstrap", (app) => {
 
   const requireDriverAuth = async (req, res, next) => {
     try {
-      const token = readDriverToken(req);
-      if (!token) {
-        return res.status(401).json({ error: "Driver login required" });
-      }
-
-      const payload = verifyDriverToken(token);
+      const payload = getValidDriverPayload(req);
       if (!payload) {
         return res.status(401).json({ error: "Driver login required" });
       }
@@ -264,12 +259,8 @@ cds.on("bootstrap", (app) => {
   });
 
   app.get("/drivers/me", async (req, res) => {
-    const token = readDriverToken(req);
-    if (!token) {
-      return res.status(401).json({ error: "Driver login required" });
-    }
-
-    const payload = verifyDriverToken(token);
+    const payload = getValidDriverPayload(req);
+    if (!payload) return res.status(401).json({ error: "Driver login required" });
     if (!payload) {
       return res.status(401).json({ error: "Driver login required" });
     }
