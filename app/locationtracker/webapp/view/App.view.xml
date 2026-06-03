@@ -121,7 +121,7 @@
                     <Text text="Start, stop, and monitor your trip in real time." class="heroSubtitle" />
                   </VBox>
                   <HBox wrap="Wrap" class="buttonCluster">
-                    <Button text="Start Trip" type="Emphasized" press=".onStartTracking" visible="{= !${appState>/tracking} }" />
+                    <Button text="{= ${appState>/currentTrip/ID} ? 'Resume Tracking' : 'Start Trip' }" type="Emphasized" press=".onStartTracking" visible="{= !${appState>/tracking} }" />
                     <Button text="Stop Trip" type="Reject" press=".onStopTracking" visible="{appState>/tracking}" />
                     <Button text="Refresh Path" icon="sap-icon://refresh" press=".onRefreshPath" />
                   </HBox>
