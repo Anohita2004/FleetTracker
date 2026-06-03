@@ -75,6 +75,10 @@ cds.on("bootstrap", (app) => {
     throw new Error("JWT_SECRET_KEY must be configured in production for driver JWT sessions.");
   }
 
+  // Enable trust proxy so Express knows it is behind the BTP AppRouter.
+  // This is CRITICAL for 'secure: true' cookies to be set correctly over the HTTP proxy connection.
+  app.set("trust proxy", 1);
+
   const cors = require("cors");
   app.use(cors({
     origin: true,
