@@ -20,6 +20,16 @@ const roundToTwoDecimals = (value) => Math.round((Number(value) + Number.EPSILON
 const resolveJwtSecret = () => {
   const configuredSecret = process.env.JWT_SECRET_KEY;
   if (configuredSecret) return configuredSecret;
+
+  // In production, derive a stable secret from the XSUAA client credentials
+  // so the JWT remains valid across server restarts and instances.
+  const xsuaaCredentials = (cds.requires.auth || {}).credentials || {};
+  const clientSecret = xsuaaCredentials.clientsecret || xsuaaCredentials.clientSecret;
+  if (clientSecret) {
+    return crypto.createHash("sha256").update("driver-jwt:" + clientSecret).digest("hex");
+  }
+
+  // Local development fallback
   return process.env.NODE_ENV === "production" ? null : "driver-jwt-dev-secret";
 };
 
