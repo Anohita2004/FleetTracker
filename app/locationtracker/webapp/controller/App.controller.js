@@ -311,11 +311,13 @@ sap.ui.define([
     },
 
     onRefreshPath: async function () {
-      if (!this._isDriver()) {
+      var isDriverView = this._isDriver();
+      var isAdminView = this._isAdmin();
+      if (!isDriverView && !isAdminView) {
         return;
       }
 
-      const trip = this._viewModel.getProperty("/currentTrip");
+      var trip = this._viewModel.getProperty("/currentTrip");
       this._ensureMap();
 
       if (!trip || !trip.ID) {
@@ -326,18 +328,68 @@ sap.ui.define([
       }
 
       try {
-        const points = await this._get("/drivers/path/" + trip.ID);
+        var pathUrl;
+        if (isDriverView) {
+          pathUrl = "/drivers/path/" + trip.ID;
+        } else {
+          pathUrl = "/tracker/path/" + trip.ID;
+        }
+        var pointsFetcher = isDriverView ? this._get(pathUrl) : this._adminGet(pathUrl);
+        var points = await pointsFetcher;
         this._points = (points.value || []).map(function (point) {
           return [Number(point.latitude), Number(point.longitude)];
         });
 
-        const lastPoint = points.value && points.value.length ? points.value[points.value.length - 1] : null;
+        var lastPoint = points.value && points.value.length ? points.value[points.value.length - 1] : null;
         this._viewModel.setProperty("/lastPoint", lastPoint);
         this._viewModel.setProperty("/totalPoints", this._points.length);
         this._syncPolyline();
-        await this._refreshMetrics();
+        if (isDriverView) {
+          await this._refreshMetrics();
+        }
       } catch (error) {
         MessageBox.error(error.message || "Unable to refresh the path.");
+      }
+    },
+
+    onSelectDriver: async function (oEvent) {
+      var oItem = oEvent.getParameter("listItem");
+      var oContext = oItem && oItem.getBindingContext("appState");
+      if (!oContext) {
+        return;
+      }
+
+      var driverId = oContext.getProperty("ID");
+      var driverName = oContext.getProperty("name");
+      if (!driverId) {
+        return;
+      }
+
+      this._viewModel.setProperty("/selectedDriverId", driverId);
+      this._viewModel.setProperty("/selectedDriverName", driverName);
+
+      // Reset current trip / points
+      this._viewModel.setProperty("/currentTrip", null);
+      this._viewModel.setProperty("/lastPoint", null);
+      this._viewModel.setProperty("/totalPoints", 0);
+      this._points = [];
+      this._syncPolyline();
+
+      try {
+        // Fetch the selected driver's active trip
+        var trip = await this._adminGet("/tracker/activeTrip/" + driverId);
+        if (trip && trip.ID) {
+          this._viewModel.setProperty("/currentTrip", trip);
+          await this.onRefreshPath();
+        } else {
+          this._viewModel.setProperty("/currentTrip", { title: driverName + " - No active trip", status: "IDLE" });
+        }
+
+        // Fetch the selected driver's metrics
+        await this._refreshAdminMetrics(driverId);
+        MessageToast.show("Loaded data for " + driverName);
+      } catch (error) {
+        MessageBox.error(error.message || "Unable to load driver data.");
       }
     },
 
@@ -693,6 +745,7 @@ sap.ui.define([
 
     _get: async function (url) {
       const response = await fetch(url, {
+        credentials: "include",
         headers: {
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -721,6 +774,7 @@ sap.ui.define([
 
       const response = await fetch(url, {
         method: "POST",
+        credentials: "include",
         headers,
         body: JSON.stringify(payload)
       });
@@ -736,6 +790,7 @@ sap.ui.define([
 
     _adminGet: async function (url) {
       const response = await fetch(url, {
+        credentials: "include",
         headers: {
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -764,6 +819,7 @@ sap.ui.define([
 
       const response = await fetch(url, {
         method: "POST",
+        credentials: "include",
         headers,
         body: JSON.stringify(payload)
       });
@@ -934,6 +990,25 @@ sap.ui.define([
         email: data && data.email ? data.email : "",
         isFleetAdmin: Boolean(data && data.isAdmin)
       };
+    },
+
+    _refreshAdminMetrics: async function (driverId) {
+      if (!driverId) {
+        return;
+      }
+
+      try {
+        var metrics = await this._adminGet("/tracker/driverMetrics/" + driverId);
+        this._viewModel.setProperty("/metrics", Object.assign({}, metrics, {
+          avgClientUpdateLatencyMs: 0,
+          latestClientUpdateLatencyMs: 0,
+          avgSessionDurationMs: 0,
+          ingestSuccessRate: 0,
+          avgIngestLatencyMs: 0
+        }));
+      } catch (error) {
+        this._viewModel.setProperty("/statusText", "Admin metrics unavailable");
+      }
     }
   });
 });

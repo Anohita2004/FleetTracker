@@ -225,7 +225,7 @@ cds.on("bootstrap", (app) => {
       res.cookie(JWT_COOKIE_NAME, token, {
         httpOnly: true,
         sameSite: "Strict",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         maxAge: JWT_TTL_MS
       });
 
@@ -621,6 +621,103 @@ cds.on("bootstrap", (app) => {
       );
 
       res.json({ value: points });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/tracker/activeTrip/:driverId", async (req, res, next) => {
+    try {
+      const db = await cds.connect.to("db");
+      const secCtx = req.user;
+      if (!secCtx) return res.status(401).json({ error: "Unauthorized" });
+
+      const isAdmin = secCtx.checkLocalScope("FleetAdmin");
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Only fleet admins can access this" });
+      }
+      const email = secCtx.id || secCtx.name;
+      let admin = await db.run(
+        SELECT.one.from("tracker.Admins").where({ email: String(email || "").trim().toLowerCase() })
+      );
+      if (!admin) {
+        return res.status(404).json({ error: "Admin profile not found" });
+      }
+
+      const driverId = req.params.driverId;
+      let driver = await db.run(
+        SELECT.one.from("tracker.Drivers").where({ ID: driverId })
+      );
+      driver = normalizeDriverRecord(driver);
+      if (!driver || driver.admin_ID !== admin.ID) {
+        return res.status(403).json({ error: "You can only access your own drivers" });
+      }
+
+      let activeTrip = await db.run(
+        SELECT.one.from("tracker.Trips")
+          .where({ status: "ACTIVE", driver_ID: driver.ID })
+          .orderBy("startedAt desc")
+      );
+      activeTrip = normalizeTripRecord(activeTrip);
+
+      res.json(activeTrip || null);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/tracker/driverMetrics/:driverId", async (req, res, next) => {
+    try {
+      const db = await cds.connect.to("db");
+      const secCtx = req.user;
+      if (!secCtx) return res.status(401).json({ error: "Unauthorized" });
+
+      const isAdmin = secCtx.checkLocalScope("FleetAdmin");
+      if (!isAdmin) return res.status(403).json({ error: "Only fleet admins can access this" });
+
+      const email = secCtx.id || secCtx.name;
+      let admin = await db.run(
+        SELECT.one.from("tracker.Admins").where({ email: String(email || "").trim().toLowerCase() })
+      );
+      if (!admin) return res.status(404).json({ error: "Admin profile not found" });
+
+      const driverId = req.params.driverId;
+      let driver = await db.run(
+        SELECT.one.from("tracker.Drivers").where({ ID: driverId })
+      );
+      driver = normalizeDriverRecord(driver);
+      if (!driver || driver.admin_ID !== admin.ID) {
+        return res.status(403).json({ error: "You can only access your own drivers" });
+      }
+
+      const [tripCountRow] = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId }).columns("count(1) as count"));
+      const [completedTripCountRow] = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId, status: "COMPLETED" }).columns("count(1) as count"));
+      
+      const tripsQuery = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId }).columns("ID"));
+      const tripIds = tripsQuery.map(t => t.ID);
+      let totalPoints = 0;
+      let avgGpsAccuracy = 0;
+      
+      if (tripIds.length > 0) {
+         const [pointCountRow] = await db.run(SELECT.from("tracker.LocationPoints").where({ trip_ID: { in: tripIds } }).columns("count(1) as count"));
+         totalPoints = Number(pointCountRow?.count || 0);
+         const [accuracyAverageRow] = await db.run(SELECT.from("tracker.LocationPoints").where({ trip_ID: { in: tripIds }, accuracy: { "!=": null } }).columns("avg(accuracy) as avgAccuracy"));
+         avgGpsAccuracy = Number(accuracyAverageRow?.avgAccuracy || 0);
+      }
+
+      const totalTrips = Number(tripCountRow?.count || 0);
+      const totalCompletedTrips = Number(completedTripCountRow?.count || 0);
+      const completionRate = totalTrips ? (totalCompletedTrips / totalTrips) * 100 : 0;
+      const avgPointsPerTrip = totalTrips ? (totalPoints / totalTrips) : 0;
+
+      res.json({
+        totalTrips,
+        completedTrips: totalCompletedTrips,
+        completionRate: Math.round((completionRate + Number.EPSILON) * 100) / 100,
+        totalPoints,
+        avgPointsPerTrip: Math.round((avgPointsPerTrip + Number.EPSILON) * 100) / 100,
+        avgGpsAccuracy: Math.round((avgGpsAccuracy + Number.EPSILON) * 100) / 100
+      });
     } catch (error) {
       next(error);
     }

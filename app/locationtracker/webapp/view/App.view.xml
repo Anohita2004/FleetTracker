@@ -68,7 +68,7 @@
                   <Title text="Drivers" level="H3" />
                   <Text text="Manage the drivers in your fleet." />
                 </HBox>
-                <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false">
+                <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false" mode="SingleSelectMaster" selectionChange=".onSelectDriver">
                   <columns>
                     <Column><Text text="Name" /></Column>
                     <Column><Text text="Email" /></Column>
