@@ -997,10 +997,7 @@ sap.ui.define([
         var metrics = await this._adminGet("/tracker/driverMetrics/" + driverId);
         this._viewModel.setProperty("/metrics", Object.assign({}, metrics, {
           avgClientUpdateLatencyMs: 0,
-          latestClientUpdateLatencyMs: 0,
-          avgSessionDurationMs: 0,
-          ingestSuccessRate: 0,
-          avgIngestLatencyMs: 0
+          latestClientUpdateLatencyMs: 0
         }));
       } catch (error) {
         this._viewModel.setProperty("/statusText", "Admin metrics unavailable");

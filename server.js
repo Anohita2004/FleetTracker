@@ -725,30 +725,77 @@ cds.on("bootstrap", (app) => {
       const [tripCountRow] = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId }).columns("count(1) as count"));
       const [completedTripCountRow] = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId, status: "COMPLETED" }).columns("count(1) as count"));
       
-      const tripsQuery = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId }).columns("ID"));
-      const tripIds = tripsQuery.map(t => t.ID);
+      const tripsQuery = await db.run(SELECT.from("tracker.Trips").where({ driver_ID: driverId }).columns("ID", "startedAt", "endedAt", "status"));
+      const tripIds = tripsQuery.map(t => t.ID || t.id || t.Id);
       let totalPoints = 0;
       let avgGpsAccuracy = 0;
+      let ingestSuccessRate = 0;
+      let avgIngestLatencyMs = 0;
       
       if (tripIds.length > 0) {
          const [pointCountRow] = await db.run(SELECT.from("tracker.LocationPoints").where({ trip_ID: { in: tripIds } }).columns("count(1) as count"));
-         totalPoints = Number(pointCountRow?.count || 0);
+         totalPoints = Number(pointCountRow?.count || pointCountRow?.COUNT || 0);
          const [accuracyAverageRow] = await db.run(SELECT.from("tracker.LocationPoints").where({ trip_ID: { in: tripIds }, accuracy: { "!=": null } }).columns("avg(accuracy) as avgAccuracy"));
-         avgGpsAccuracy = Number(accuracyAverageRow?.avgAccuracy || 0);
+         avgGpsAccuracy = Number(accuracyAverageRow?.avgAccuracy || accuracyAverageRow?.AVGACCURACY || 0);
+
+         const timePoints = await db.run(
+           SELECT.from("tracker.LocationPoints")
+             .where({ trip_ID: { in: tripIds } })
+             .columns("recordedAt", "createdAt")
+         );
+
+         const latencies = timePoints
+           .map((p) => {
+             const rAt = p.recordedAt || p.RECORDEDAT;
+             const cAt = p.createdAt || p.CREATEDAT;
+             return rAt && cAt ? new Date(cAt).getTime() - new Date(rAt).getTime() : -1;
+           })
+           .filter((l) => l >= 0);
+
+         if (totalPoints > 0) {
+           ingestSuccessRate = 100;
+         }
+
+         if (latencies.length > 0) {
+           avgIngestLatencyMs = roundToTwoDecimals(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+         }
       }
 
-      const totalTrips = Number(tripCountRow?.count || 0);
-      const totalCompletedTrips = Number(completedTripCountRow?.count || 0);
+      const totalTrips = Number(tripCountRow?.count || tripCountRow?.COUNT || 0);
+      const totalCompletedTrips = Number(completedTripCountRow?.count || completedTripCountRow?.COUNT || 0);
       const completionRate = totalTrips ? (totalCompletedTrips / totalTrips) * 100 : 0;
       const avgPointsPerTrip = totalTrips ? (totalPoints / totalTrips) : 0;
+
+      const durations = tripsQuery
+        .filter((trip) => {
+          const status = trip.status || trip.STATUS;
+          return status === "COMPLETED";
+        })
+        .map((trip) => {
+          const startedAt = trip.startedAt || trip.STARTEDAT;
+          const endedAt = trip.endedAt || trip.ENDEDAT;
+          return {
+            startedAt: startedAt ? new Date(startedAt).getTime() : null,
+            endedAt: endedAt ? new Date(endedAt).getTime() : null
+          };
+        })
+        .filter((trip) => Number.isFinite(trip.startedAt) && Number.isFinite(trip.endedAt) && trip.endedAt >= trip.startedAt)
+        .map((trip) => trip.endedAt - trip.startedAt);
+
+      const avgSessionDurationMs = durations.length
+        ? roundToTwoDecimals(durations.reduce((sum, duration) => sum + duration, 0) / durations.length)
+        : 0;
 
       res.json({
         totalTrips,
         completedTrips: totalCompletedTrips,
-        completionRate: Math.round((completionRate + Number.EPSILON) * 100) / 100,
+        completionRate: roundToTwoDecimals(completionRate),
         totalPoints,
-        avgPointsPerTrip: Math.round((avgPointsPerTrip + Number.EPSILON) * 100) / 100,
-        avgGpsAccuracy: Math.round((avgGpsAccuracy + Number.EPSILON) * 100) / 100
+        avgPointsPerTrip: roundToTwoDecimals(avgPointsPerTrip),
+        avgGpsAccuracy: roundToTwoDecimals(avgGpsAccuracy),
+        avgSessionDurationMs,
+        ingestSuccessRate,
+        avgIngestLatencyMs
       });
     } catch (error) {
       next(error);
