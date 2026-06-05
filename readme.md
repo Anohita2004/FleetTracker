@@ -1,4 +1,4 @@
-# Location Tracker — Fleet & Driver Management Platform
+# FleetTracker — Fleet & Driver Management Platform
 
 A comprehensive, enterprise-ready **SAP Cloud Application Programming Model (CAP)** platform for real-time fleet tracking, driver management, and geolocation analytics — spanning a full-stack web application and a native Android companion app.
 
