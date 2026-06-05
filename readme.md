@@ -14,6 +14,11 @@ All three surfaces share a **single CAP Node.js backend** deployed on SAP BTP Cl
 
 ---
 
+## 📹 Live Demo & Walkthrough
+*(Embed or link your demonstration video here. Example: `[![Watch the video](https://img.youtube.com/vi/YOUR_VIDEO_ID/hqdefault.jpg)](https://youtu.be/YOUR_VIDEO_ID)`)*
+
+Since this application uses enterprise-grade SAP XSUAA for its Admin dashboard, public access is securely restricted. Please watch the video above to see the full tri-surface flow (Admin Dashboard, Driver Web, & Driver Mobile App) in action!
+
 ## 📸 Screenshots
 
 ### Web Application
@@ -46,11 +51,6 @@ All three surfaces share a **single CAP Node.js backend** deployed on SAP BTP Cl
   <img src="docs/screenshots/Screenshot 6.jpeg" alt="Fleet Driver App — Active trip with GPS streaming" width="300" />
 </p>
 <p align="center"><em>Fleet Driver App — Login screen (left) and active trip with live GPS streaming (right)</em></p>
-
-## 📹 Live Demo & Walkthrough
-*(Embed or link your demonstration video here. Example: `[![Watch the video](https://img.youtube.com/vi/YOUR_VIDEO_ID/hqdefault.jpg)](https://youtu.be/YOUR_VIDEO_ID)`)*
-
-Since this application uses enterprise-grade SAP XSUAA for its Admin dashboard, public access is securely restricted. Please watch the video above to see the full tri-surface flow (Admin Dashboard, Driver Web, & Driver Mobile App) in action!
 
 ---
 
