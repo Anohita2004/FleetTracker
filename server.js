@@ -151,6 +151,28 @@ cds.on("bootstrap", (app) => {
     return normalizeTripRecord(res);
   };
 
+  const normalizeTruckRecord = (truck) => {
+    if (!truck) return null;
+    return {
+      ...truck,
+      ID: truck.ID || truck.id || truck.Id,
+      truckNumber: truck.truckNumber || truck.TRUCKNUMBER || truck.vehicle_number,
+      model: truck.model || truck.MODEL,
+      registrationNumber: truck.registrationNumber || truck.REGISTRATION_NUMBER || truck.registration_number,
+      fuelType: truck.fuelType || truck.FUEL_TYPE,
+      status: truck.status || truck.STATUS,
+      latitude: truck.latitude !== undefined ? truck.latitude : truck.LATITUDE,
+      longitude: truck.longitude !== undefined ? truck.longitude : truck.LONGITUDE,
+      assignedDriver_ID: truck.assignedDriver_ID || truck.ASSIGNEDDRIVER_ID || (truck.assignedDriver && (truck.assignedDriver.ID || truck.assignedDriver.id)) || null,
+      admin_ID: truck.admin_ID || truck.ADMIN_ID
+    };
+  };
+
+  const getTruckById = async (db, truckId) => {
+    const res = await db.run(SELECT.one.from("tracker.Trucks").where({ ID: truckId }));
+    return normalizeTruckRecord(res);
+  };
+
   const getActiveTrip = async (db, driverId) => {
     const res = await db.run(
       SELECT.one.from("tracker.Trips")
@@ -801,4 +823,179 @@ cds.on("bootstrap", (app) => {
       next(error);
     }
   });
-});
+
+    // Lightweight admin profile endpoint for UI convenience
+    app.get("/tracker/adminProfile", requireAdminAuth, async (req, res, next) => {
+      try {
+        const secCtx = req.user;
+        if (!secCtx) return res.status(401).json({ error: "Unauthorized" });
+        const db = await cds.connect.to("db");
+        const email = typeof secCtx.getLogonName === 'function' ? normalizeEmail(secCtx.getLogonName()) : normalizeEmail(secCtx.id || secCtx.logonName || '');
+        let admin = await db.run(SELECT.one.from("tracker.Admins").where({ email }));
+        if (!admin) return res.status(404).json({ error: "Admin profile not found" });
+        return res.json({ ID: admin.ID || admin.id, name: admin.name || admin.NAME, email: admin.email || admin.EMAIL });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Truck management endpoints ---
+    app.get("/tracker/trucks", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const trucks = await db.run(SELECT.from("tracker.Trucks").columns("*"));
+        return res.json({ value: (trucks || []).map(normalizeTruckRecord) });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post("/tracker/trucks", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const payload = {
+          ID: cds.utils.uuid(),
+          truckNumber: req.body?.truckNumber ?? null,
+          model: req.body?.model ?? null,
+          registrationNumber: req.body?.registrationNumber ?? null,
+          fuelType: req.body?.fuelType ?? null,
+          status: req.body?.status || "IDLE",
+          latitude: req.body?.latitude ?? null,
+          longitude: req.body?.longitude ?? null,
+          assignedDriver_ID: req.body?.assignedDriver_ID ?? null,
+          admin_ID: req.body?.admin_ID ?? null
+        };
+
+        // Ensure admin_ID is set. Prefer the authenticated admin (req.user) when available.
+        if (!payload.admin_ID) {
+          let admin = null;
+          try {
+            const secCtx = req.user; // set by requireAdminAuth for XSUAA flows
+            if (secCtx && typeof secCtx.getLogonName === 'function') {
+              const email = normalizeEmail(secCtx.getLogonName());
+              admin = await db.run(SELECT.one.from("tracker.Admins").where({ email }));
+              if (!admin) {
+                // create admin record
+                const newAdmin = { ID: cds.utils.uuid(), name: email, email };
+                await db.run(INSERT.into("tracker.Admins").entries(newAdmin));
+                admin = newAdmin;
+              }
+            }
+
+            // Fallback: use first existing admin in DB (local/dev convenience)
+            if (!admin) {
+              admin = await db.run(SELECT.one.from("tracker.Admins"));
+            }
+          } catch (e) {
+            // ignore and validate below
+          }
+
+          if (!admin || !admin.ID) {
+            return res.status(400).json({ error: "admin_ID is required; no admin context found" });
+          }
+          payload.admin_ID = admin.ID;
+        }
+
+        await db.run(INSERT.into("tracker.Trucks").entries(payload));
+        const created = await getTruckById(db, payload.ID);
+        return res.json(created);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.put("/tracker/trucks/:id", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const id = req.params.id;
+        const updates = {};
+        ["truckNumber","model","registrationNumber","fuelType","status","latitude","longitude","assignedDriver_ID"].forEach((k) => {
+          if (Object.prototype.hasOwnProperty.call(req.body, k)) updates[k] = req.body[k];
+        });
+        await db.run(UPDATE("tracker.Trucks").set(updates).where({ ID: id }));
+        const truck = await getTruckById(db, id);
+        return res.json(truck);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.delete("/tracker/trucks/:id", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const id = req.params.id;
+        await db.run(UPDATE("tracker.Trucks").set({ status: "DEACTIVATED" }).where({ ID: id }));
+        return res.json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post("/tracker/trucks/:id/assign", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const id = req.params.id;
+        const driverId = req.body?.driverId;
+        if (!driverId) return res.status(400).json({ error: "driverId required" });
+        await db.run(UPDATE("tracker.Trucks").set({ assignedDriver_ID: driverId }).where({ ID: id }));
+        const truck = await getTruckById(db, id);
+        return res.json(truck);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post("/tracker/trucks/:id/status", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const id = req.params.id;
+        const status = req.body?.status;
+        if (!status) return res.status(400).json({ error: "status required" });
+        await db.run(UPDATE("tracker.Trucks").set({ status }).where({ ID: id }));
+        const truck = await getTruckById(db, id);
+        return res.json(truck);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Dashboard endpoint for fleet overview ---
+    app.get("/tracker/dashboard", requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to("db");
+        const [truckCountRow] = await db.run(SELECT.from("tracker.Trucks").columns("count(1) as count"));
+        const totalTrucks = Number(truckCountRow?.count || 0);
+
+        const [activeTripsRow] = await db.run(SELECT.from("tracker.Trips").where({ status: "ACTIVE" }).columns("count(1) as count"));
+        const activeTrips = Number(activeTripsRow?.count || 0);
+
+        const [completedTripsRow] = await db.run(SELECT.from("tracker.Trips").where({ status: "COMPLETED" }).columns("count(1) as count"));
+        const completedTrips = Number(completedTripsRow?.count || 0);
+
+        const now = new Date().toISOString();
+        const delayedRows = await db.run(SELECT.from("tracker.Trips").where({ status: "ACTIVE", expectedEndAt: { "<": now } }).columns("ID"));
+        const delayedDeliveries = (delayedRows || []).length;
+
+        const activeTripDrivers = await db.run(SELECT.from("tracker.Trips").where({ status: "ACTIVE" }).columns("driver_ID"));
+        const activeDriverIds = new Set((activeTripDrivers || []).map(d => d.driver_ID || d.DRIVER_ID));
+        const allDrivers = await db.run(SELECT.from("tracker.Drivers").where({ isActive: true }).columns("ID"));
+        const availableDrivers = (allDrivers || []).filter(d => !activeDriverIds.has(d.ID || d.id || d.Id));
+
+        const trucks = await db.run(SELECT.from("tracker.Trucks").columns("*") );
+        const normalizedTrucks = (trucks || []).map(normalizeTruckRecord);
+
+        return res.json({
+          generatedAt: nowISO(),
+          totalTrucks,
+          activeTrips,
+          completedTrips,
+          delayedDeliveries,
+          availableDrivers: availableDrivers.length,
+          trucks: normalizedTrucks
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+  });

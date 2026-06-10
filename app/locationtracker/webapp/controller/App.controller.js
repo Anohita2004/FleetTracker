@@ -20,6 +20,7 @@ sap.ui.define([
       this._viewModel = this.getOwnerComponent().getModel("appState");
       this._adminCsrfToken = null;
       this._addDriverDialog = null;
+      this._addTruckDialog = null;
       this._leafletLoadPending = false;
 
       const mapContainer = this.byId("trackerMapContainer");
@@ -160,6 +161,104 @@ sap.ui.define([
         MessageBox.error(error.message || "Unable to create driver");
       }
     },
+
+    // --- Trucks management ---
+    onOpenAddTruckDialog: async function () {
+      if (!this._addTruckDialog) {
+        this._addTruckDialog = await Fragment.load({
+          id: this.getView().getId(),
+          name: "com.locationtracker.locationtracker.fragment.AddTruckDialog",
+          controller: this
+        });
+        this.getView().addDependent(this._addTruckDialog);
+      }
+
+      this._viewModel.setProperty("/addTruck", {
+        truckNumber: null,
+        model: "",
+        registrationNumber: "",
+        fuelType: "DIESEL",
+        status: "IDLE",
+        assignedDriver_ID: null
+      });
+
+      await this._loadTruckList();
+      this._addTruckDialog.open();
+    },
+
+    onCancelAddTruck: function () {
+      if (this._addTruckDialog) {
+        this._addTruckDialog.close();
+      }
+    },
+
+    onCreateTruck: async function () {
+      const payload = this._viewModel.getProperty("/addTruck") || {};
+      if (!payload.truckNumber || !payload.model || !payload.registrationNumber) {
+        MessageBox.error("Truck number, model and registration are required.");
+        return;
+      }
+
+      try {
+        // Ensure admin entity exists and fetch its ID if possible
+        try {
+          const admins = await this._adminGet("/tracker/Admins");
+          const adminEntity = Array.isArray(admins.value) && admins.value.length ? admins.value[0] : null;
+          if (adminEntity && adminEntity.ID) payload.admin_ID = adminEntity.ID;
+        } catch (e) {
+          // ignore — server-side handler may derive admin association
+        }
+
+        await this._adminPost("/tracker/trucks", payload);
+        if (this._addTruckDialog) this._addTruckDialog.close();
+        await this._loadTruckList();
+        MessageToast.show("Truck created");
+      } catch (error) {
+        MessageBox.error(error.message || "Unable to create truck");
+      }
+    },
+
+    onDeleteTruck: function (oEvent) {
+      var context = oEvent.getSource().getBindingContext("appState");
+      var truckId = context && context.getProperty("ID");
+      if (!truckId) return;
+
+      MessageBox.confirm("Deactivate this truck?", {
+        onClose: async function (action) {
+          if (action !== MessageBox.Action.OK) return;
+          try {
+            await this._adminPost("/tracker/trucks/" + truckId + "/status", { status: "DEACTIVATED" });
+            await this._loadTruckList();
+            MessageToast.show("Truck deactivated");
+          } catch (error) {
+            MessageBox.error(error.message || "Unable to deactivate truck");
+          }
+        }.bind(this)
+      });
+    },
+
+    _loadTruckList: async function () {
+      if (!this._isAdmin()) return;
+      try {
+        const response = await this._adminGet("/tracker/trucks");
+        const raw = this._getODataCollection(response);
+        const trucks = raw.map(function (t) {
+          return {
+            ID: t.ID || t.Id || t.id || null,
+            truckNumber: t.truckNumber || t.TRUCKNUMBER || t.vehicle_number || null,
+            model: t.model || t.MODEL || "",
+            registrationNumber: t.registrationNumber || t.REGISTRATION_NUMBER || t.registration_number || "",
+            fuelType: t.fuelType || t.FUEL_TYPE || "",
+            status: t.status || t.STATUS || "",
+            assignedDriver_ID: t.assignedDriver_ID || t.ASSIGNEDDRIVER_ID || (t.assignedDriver && (t.assignedDriver.ID || t.assignedDriver.id)) || null
+          };
+        });
+        this._viewModel.setProperty("/trucks", trucks);
+      } catch (error) {
+        MessageBox.error(error.message || "Unable to load trucks");
+      }
+    },
+
 
     onDeleteDriver: function (oEvent) {
       var context = oEvent.getSource().getBindingContext("appState");
@@ -492,6 +591,8 @@ sap.ui.define([
       }
     },
 
+
+
     _getODataCollection: function (response) {
       if (response && Array.isArray(response.value)) {
         return response.value;
@@ -540,6 +641,20 @@ sap.ui.define([
         modifiedBy: safeDriver.modifiedBy || safeDriver.MODIFIEDBY || null
       };
     },
+
+    _normalizeTruck: function (truck) {
+      const t = truck || {};
+      return {
+        ID: t.ID || t.Id || t.id || null,
+        truckNumber: t.truckNumber || t.TRUCKNUMBER || t.vehicle_number || null,
+        model: t.model || t.MODEL || "",
+        registrationNumber: t.registrationNumber || t.REGISTRATION_NUMBER || t.registration_number || "",
+        fuelType: t.fuelType || t.FUEL_TYPE || "",
+        status: t.status || t.STATUS || "",
+        assignedDriver_ID: t.assignedDriver_ID || t.ASSIGNEDDRIVER_ID || (t.assignedDriver && (t.assignedDriver.ID || t.assignedDriver.id)) || null
+      };
+    },
+
 
     _loadActiveTrip: async function () {
       if (!this._isDriver()) {

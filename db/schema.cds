@@ -17,16 +17,17 @@ entity Drivers : cuid, managed {
   sessions           : Composition of many DriverSessions on sessions.driver = $self;
 }
 entity Trips : cuid, managed {
-  title     : String(120);
-  driver    : Association to Drivers;
-  startedAt : Timestamp;
-  endedAt   : Timestamp;
-  status    : String(20) enum {
+  title        : String(120);
+  driver       : Association to Drivers;
+  startedAt    : Timestamp;
+  expectedEndAt: Timestamp; // optional field to mark expected delivery/arrival time
+  endedAt      : Timestamp;
+  status       : String(20) enum {
     ACTIVE;
     COMPLETED;
     PAUSED;
   } default 'ACTIVE';
-  points    : Composition of many LocationPoints on points.trip = $self;
+  points       : Composition of many LocationPoints on points.trip = $self;
 }
 entity LocationPoints : cuid, managed {
   trip       : Association to Trips not null;
@@ -52,6 +53,27 @@ entity Vehicles : cuid, managed {
     ACTIVE;
     DEACTIVATED;
   } default 'DEACTIVATED';
+}
+
+// New Trucks entity for truck management and live-tracking
+entity Trucks : cuid, managed {
+  truckNumber         : Integer;
+  model               : String(120);
+  registrationNumber  : String(80);
+  fuelType            : String(20) enum {
+    PETROL;
+    DIESEL;
+    ELECTRIC;
+  } default 'DIESEL';
+  status              : String(30) enum {
+    ACTIVE;
+    IN_MAINTENANCE;
+    IDLE;
+  } default 'IDLE';
+  latitude            : Decimal(9,6);
+  longitude           : Decimal(9,6);
+  assignedDriver      : Association to Drivers;
+  admin               : Association to Admins not null;
 }
 
 entity MetricSnapshots : cuid, managed {

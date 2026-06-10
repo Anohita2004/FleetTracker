@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:corem="sap.ui.core">
+  <Dialog id="addTruckDialog" title="Manage Trucks" stretch="false">
+    <content>
+      <VBox>
+        <HBox class="sapUiSmallMarginBottom" alignItems="Center" justifyContent="SpaceBetween">
+          <VBox>
+            <Label text="Truck Number" />
+            <Input value="{appState>/addTruck/truckNumber}" type="Number" />
+          </VBox>
+          <VBox>
+            <Label text="Model" />
+            <Input value="{appState>/addTruck/model}" />
+          </VBox>
+          <VBox>
+            <Label text="Registration" />
+            <Input value="{appState>/addTruck/registrationNumber}" />
+          </VBox>
+        </HBox>
+        <HBox class="sapUiSmallMarginBottom" alignItems="Center" justifyContent="SpaceBetween">
+          <VBox>
+            <Label text="Fuel Type" />
+            <Select selectedKey="{appState>/addTruck/fuelType}">
+              <items>
+                <corem:Item key="PETROL" text="Petrol" />
+                <corem:Item key="DIESEL" text="Diesel" />
+                <corem:Item key="ELECTRIC" text="Electric" />
+              </items>
+            </Select>
+          </VBox>
+          <VBox>
+            <Label text="Status" />
+            <Select selectedKey="{appState>/addTruck/status}">
+              <items>
+                <corem:Item key="ACTIVE" text="Active" />
+                <corem:Item key="IN_MAINTENANCE" text="In Maintenance" />
+                <corem:Item key="IDLE" text="Idle" />
+              </items>
+            </Select>
+          </VBox>
+          <VBox>
+            <Label text="Assigned Driver ID" />
+            <Input value="{appState>/addTruck/assignedDriver_ID}" placeholder="Driver ID (optional)" />
+          </VBox>
+        </HBox>
+
+        <Panel headerText="Trucks" class="sapUiSmallMarginTop">
+          <content>
+            <Table id="trucksTable" items="{appState>/trucks}">
+              <columns>
+                <Column><Text text="#" /></Column>
+                <Column><Text text="Model" /></Column>
+                <Column><Text text="Registration" /></Column>
+                <Column><Text text="Fuel" /></Column>
+                <Column><Text text="Status" /></Column>
+                <Column><Text text="Driver" /></Column>
+                <Column hAlign="Center"><Text text="Action" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <cells>
+                    <Text text="{appState>truckNumber}" />
+                    <Text text="{appState>model}" />
+                    <Text text="{appState>registrationNumber}" />
+                    <Text text="{appState>fuelType}" />
+                    <ObjectStatus text="{appState>status}" />
+                    <Text text="{appState>assignedDriver_ID}" />
+                    <HBox>
+                      <Button text="Delete" type="Reject" press=".onDeleteTruck" />
+                    </HBox>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </content>
+        </Panel>
+      </VBox>
+    </content>
+    <buttons>
+      <Button text="Create Truck" type="Emphasized" press=".onCreateTruck" />
+      <Button text="Close" press=".onCancelAddTruck" />
+    </buttons>
+  </Dialog>
+</core:FragmentDefinition>

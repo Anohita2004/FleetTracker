@@ -104,6 +104,7 @@
               </VBox>
 
               <Button icon="sap-icon://add-employee" type="Emphasized" press=".onOpenAddDriverDialog" class="fabButton" tooltip="Add Driver" />
+<Button icon="sap-icon://car" text="Manage Trucks" type="Emphasized" press=".onOpenAddTruckDialog" class="sapUiSmallMargin" />
             </VBox>
 
             <VBox visible="{= ${appState>/sCurrentView} === 'driverDashboard' }">

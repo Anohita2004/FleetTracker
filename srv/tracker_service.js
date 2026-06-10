@@ -41,8 +41,8 @@ module.exports = cds.service.impl(function () {
     const full = `${first} ${last}`.trim();
     return full || userId(req);
   };
-  const isAdmin = (req) => req.user?.is("FleetAdmin");
-  const isDriver = (req) => req.user?.is("Driver");
+  const isAdmin = (req) => req.user && typeof req.user.is === 'function' && req.user.is("FleetAdmin");
+  const isDriver = (req) => req.user && typeof req.user.is === 'function' && req.user.is("Driver");
 
   const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 
@@ -123,6 +123,13 @@ module.exports = cds.service.impl(function () {
   };
 
   this.before("READ", Admins, (req) => {
+    // Only allow fleet admins to read the Admins entity. If the request
+    // is unauthenticated or not a FleetAdmin, return 401 instead of
+    // allowing an unscoped query which may cause server errors in some
+    // runtime environments.
+    if (!isAdmin(req)) {
+      return req.reject(401, "Only FleetAdmin can access admin profiles");
+    }
     req.query.where({ email: normalizeEmail(userId(req)) });
   });
 

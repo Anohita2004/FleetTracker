@@ -32,12 +32,21 @@ sap.ui.define([
           password: ""
         },
         drivers: [],
+        trucks: [],
         addDriver: {
           name: "",
           email: "",
           password: "",
           vehicleId: "",
           phone: ""
+        },
+        addTruck: {
+          truckNumber: null,
+          model: "",
+          registrationNumber: "",
+          fuelType: "DIESEL",
+          status: "IDLE",
+          assignedDriver_ID: null
         },
         tracking: false,
         currentTrip: null,
