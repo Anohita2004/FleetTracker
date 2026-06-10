@@ -68,7 +68,7 @@
                   <Title text="Drivers" level="H3" />
                   <Text text="Manage the drivers in your fleet." />
                 </HBox>
-                <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false">
+                <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false" mode="SingleSelectMaster" selectionChange=".onSelectDriver">
                   <columns>
                     <Column><Text text="Name" /></Column>
                     <Column><Text text="Email" /></Column>
@@ -89,7 +89,14 @@
                         <ObjectStatus
                           text="{appState>activityStatus}"
                           state="{= ${appState>activityStatus} === 'On Trip' ? 'Success' : 'None' }" />
-                        <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteDriver" />
+                        <HBox>
+                          <Button icon="sap-icon://decline" type="Transparent" press=".onDeleteDriver"
+                                  visible="{= ${appState>isActive} }" tooltip="Deactivate" />
+                          <Button icon="sap-icon://activate" type="Transparent" press=".onReactivateDriver"
+                                  visible="{= !${appState>isActive} }" tooltip="Reactivate" />
+                          <Button icon="sap-icon://delete" type="Transparent" press=".onPermanentlyDeleteDriver"
+                                  visible="{= !${appState>isActive} }" tooltip="Permanently Delete" />
+                        </HBox>
                       </cells>
                     </ColumnListItem>
                   </items>
@@ -114,7 +121,7 @@
                     <Text text="Start, stop, and monitor your trip in real time." class="heroSubtitle" />
                   </VBox>
                   <HBox wrap="Wrap" class="buttonCluster">
-                    <Button text="Start Trip" type="Emphasized" press=".onStartTracking" visible="{= !${appState>/tracking} }" />
+                    <Button text="{= ${appState>/currentTrip/ID} ? 'Resume Tracking' : 'Start Trip' }" type="Emphasized" press=".onStartTracking" visible="{= !${appState>/tracking} }" />
                     <Button text="Stop Trip" type="Reject" press=".onStopTracking" visible="{appState>/tracking}" />
                     <Button text="Refresh Path" icon="sap-icon://refresh" press=".onRefreshPath" />
                   </HBox>

@@ -29,7 +29,7 @@ modules:
           srv-url: ${default-url}
     requires:
       - name: locationtracker-auth
-      - name: locationtracker-db
+      - name: fleet-hdi
 
   - name: locationtracker-db-deployer
     type: hdb
@@ -37,7 +37,7 @@ modules:
     parameters:
       buildpack: nodejs_buildpack
     requires:
-      - name: locationtracker-db
+      - name: fleet-hdi
 
   - name: locationtracker
     type: approuter.nodejs
@@ -119,7 +119,7 @@ resources:
     requires:
       - name: app-api
 
-  - name: locationtracker-db
+  - name: fleet-hdi
     type: com.sap.xs.hdi-container
     parameters:
       service: hana

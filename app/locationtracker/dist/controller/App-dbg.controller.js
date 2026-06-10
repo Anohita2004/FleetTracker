@@ -58,6 +58,9 @@ sap.ui.define([
     },
 
     onAdminLoginPress: function () {
+      try {
+        window.sessionStorage.setItem("adminLoginIntent", "true");
+      } catch (e) { /* private browsing may block sessionStorage */ }
       window.location.href = "/login";
     },
 
@@ -71,6 +74,10 @@ sap.ui.define([
           password: credentials.password
         });
 
+        try {
+          window.sessionStorage.setItem("driverLoginIntent", "true");
+        } catch (e) { /* private browsing */ }
+
         this._viewModel.setProperty("/driverLogin/password", "");
         this._viewModel.setProperty("/driverCsrfToken", response.csrfToken || null);
         await this._checkAuthStatus();
@@ -83,7 +90,7 @@ sap.ui.define([
     },
 
     onLogoutPress: async function () {
-      const role = this._viewModel.getProperty("/role");
+      var role = this._viewModel.getProperty("/role");
       if (role === "driver") {
         try {
           await this._post("/drivers/logout", {});
@@ -95,6 +102,11 @@ sap.ui.define([
         return;
       }
 
+      // Clear the admin login intent so the next page load shows
+      // the auth chooser instead of auto-detecting the XSUAA session.
+      try {
+        window.sessionStorage.removeItem("adminLoginIntent");
+      } catch (e) { /* private browsing */ }
       window.location.href = "/do/logout";
     },
 
@@ -150,8 +162,8 @@ sap.ui.define([
     },
 
     onDeleteDriver: function (oEvent) {
-      const context = oEvent.getSource().getBindingContext("appState");
-      const driverId = context && context.getProperty("ID");
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
       if (!driverId) {
         return;
       }
@@ -164,11 +176,64 @@ sap.ui.define([
           try {
             await this._adminPost("/tracker/deleteDriver", { driverId });
             await this._loadDriverList();
+            MessageToast.show("Driver deactivated");
           } catch (error) {
             MessageBox.error(error.message || "Unable to deactivate driver");
           }
         }.bind(this)
       });
+    },
+
+    onReactivateDriver: function (oEvent) {
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
+      if (!driverId) {
+        return;
+      }
+
+      MessageBox.confirm("Reactivate this driver?", {
+        onClose: async function (action) {
+          if (action !== MessageBox.Action.OK) {
+            return;
+          }
+          try {
+            await this._adminPost("/tracker/reactivateDriver", { driverId: driverId });
+            await this._loadDriverList();
+            MessageToast.show("Driver reactivated");
+          } catch (error) {
+            MessageBox.error(error.message || "Unable to reactivate driver");
+          }
+        }.bind(this)
+      });
+    },
+
+    onPermanentlyDeleteDriver: function (oEvent) {
+      var context = oEvent.getSource().getBindingContext("appState");
+      var driverId = context && context.getProperty("ID");
+      var driverName = context && context.getProperty("name");
+      if (!driverId) {
+        return;
+      }
+
+      MessageBox.warning(
+        "Permanently delete driver '" + (driverName || "Unknown") + "'?\n\nThis will remove all associated trips and location data. This action cannot be undone.",
+        {
+          actions: ["Delete", MessageBox.Action.CANCEL],
+          emphasizedAction: MessageBox.Action.CANCEL,
+          onClose: async function (action) {
+            if (action !== "Delete") {
+              return;
+            }
+            try {
+              await this._adminPost("/tracker/permanentlyDeleteDriver", { driverId: driverId });
+              await this._loadDriverList();
+              MessageToast.show("Driver permanently deleted");
+            } catch (error) {
+              MessageBox.error(error.message || "Unable to delete driver");
+            }
+          }.bind(this)
+        }
+      );
     },
 
     onStartTracking: async function () {
@@ -232,11 +297,12 @@ sap.ui.define([
         this._watchId = null;
       }
 
+      this._viewModel.setProperty("/tracking", false);
+      this._viewModel.setProperty("/statusText", "Tracking stopped");
+
       try {
         const stoppedTrip = await this._post("/drivers/stopTrip", { tripId: trip.ID });
         this._viewModel.setProperty("/currentTrip", stoppedTrip);
-        this._viewModel.setProperty("/tracking", false);
-        this._viewModel.setProperty("/statusText", "Tracking stopped");
         await this._refreshMetrics();
         MessageToast.show("Trip stopped");
       } catch (error) {
@@ -245,11 +311,13 @@ sap.ui.define([
     },
 
     onRefreshPath: async function () {
-      if (!this._isDriver()) {
+      var isDriverView = this._isDriver();
+      var isAdminView = this._isAdmin();
+      if (!isDriverView && !isAdminView) {
         return;
       }
 
-      const trip = this._viewModel.getProperty("/currentTrip");
+      var trip = this._viewModel.getProperty("/currentTrip");
       this._ensureMap();
 
       if (!trip || !trip.ID) {
@@ -260,18 +328,68 @@ sap.ui.define([
       }
 
       try {
-        const points = await this._get("/drivers/path/" + trip.ID);
+        var pathUrl;
+        if (isDriverView) {
+          pathUrl = "/drivers/path/" + trip.ID;
+        } else {
+          pathUrl = "/tracker/path/" + trip.ID;
+        }
+        var pointsFetcher = isDriverView ? this._get(pathUrl) : this._adminGet(pathUrl);
+        var points = await pointsFetcher;
         this._points = (points.value || []).map(function (point) {
           return [Number(point.latitude), Number(point.longitude)];
         });
 
-        const lastPoint = points.value && points.value.length ? points.value[points.value.length - 1] : null;
+        var lastPoint = points.value && points.value.length ? points.value[points.value.length - 1] : null;
         this._viewModel.setProperty("/lastPoint", lastPoint);
         this._viewModel.setProperty("/totalPoints", this._points.length);
         this._syncPolyline();
-        await this._refreshMetrics();
+        if (isDriverView) {
+          await this._refreshMetrics();
+        }
       } catch (error) {
         MessageBox.error(error.message || "Unable to refresh the path.");
+      }
+    },
+
+    onSelectDriver: async function (oEvent) {
+      var oItem = oEvent.getParameter("listItem");
+      var oContext = oItem && oItem.getBindingContext("appState");
+      if (!oContext) {
+        return;
+      }
+
+      var driverId = oContext.getProperty("ID");
+      var driverName = oContext.getProperty("name");
+      if (!driverId) {
+        return;
+      }
+
+      this._viewModel.setProperty("/selectedDriverId", driverId);
+      this._viewModel.setProperty("/selectedDriverName", driverName);
+
+      // Reset current trip / points
+      this._viewModel.setProperty("/currentTrip", null);
+      this._viewModel.setProperty("/lastPoint", null);
+      this._viewModel.setProperty("/totalPoints", 0);
+      this._points = [];
+      this._syncPolyline();
+
+      try {
+        // Fetch the selected driver's active trip
+        var trip = await this._adminGet("/tracker/activeTrip/" + driverId);
+        if (trip && trip.ID) {
+          this._viewModel.setProperty("/currentTrip", trip);
+          await this.onRefreshPath();
+        } else {
+          this._viewModel.setProperty("/currentTrip", { title: driverName + " - No active trip", status: "IDLE" });
+        }
+
+        // Fetch the selected driver's metrics
+        await this._refreshAdminMetrics(driverId);
+        MessageToast.show("Loaded data for " + driverName);
+      } catch (error) {
+        MessageBox.error(error.message || "Unable to load driver data.");
       }
     },
 
@@ -297,34 +415,61 @@ sap.ui.define([
         return;
       }
 
+      var driverLoginIntent = false;
       try {
-        const driverResponse = await this._get("/drivers/me");
-        if (driverResponse && driverResponse.driver) {
-          this._viewModel.setProperty("/driverProfile", driverResponse.driver || null);
-          this._viewModel.setProperty("/driverCsrfToken", driverResponse.csrfToken || null);
-          this._setView("driverDashboard", "driver");
-          await this._loadActiveTrip();
-          await this._refreshMetrics();
-          return;
+        driverLoginIntent = window.sessionStorage.getItem("driverLoginIntent") === "true";
+      } catch (e) { /* private browsing */ }
+
+      if (driverLoginIntent) {
+        try {
+          const driverResponse = await this._get("/drivers/me");
+          if (driverResponse && driverResponse.driver) {
+            this._viewModel.setProperty("/driverProfile", driverResponse.driver || null);
+            this._viewModel.setProperty("/driverCsrfToken", driverResponse.csrfToken || null);
+            this._setView("driverDashboard", "driver");
+            await this._loadActiveTrip();
+            await this._refreshMetrics();
+            return;
+          }
+        } catch (error) {
+          // Driver session not active.
         }
-      } catch (error) {
-        // Driver session not active.
+        
+        try {
+          window.sessionStorage.removeItem("driverLoginIntent");
+        } catch (e) { /* private browsing */ }
       }
 
+      // Only probe the XSUAA-protected admin endpoint when the user
+      // explicitly clicked "Login as Fleet Admin".  Without this gate
+      // the app would auto-detect an existing XSUAA session and skip
+      // the auth chooser page entirely.
+      var adminLoginIntent = false;
       try {
-        const adminProfile = await this._getAdminProfile();
-        if (adminProfile && adminProfile.isFleetAdmin) {
-          this._viewModel.setProperty("/adminProfile", adminProfile);
-          this._setView("adminDashboard", "admin");
-          await this._loadDriverList();
-          return;
+        adminLoginIntent = window.sessionStorage.getItem("adminLoginIntent") === "true";
+      } catch (e) { /* private browsing */ }
+
+      if (adminLoginIntent) {
+        try {
+          var adminProfile = await this._getAdminProfile();
+          if (adminProfile && adminProfile.isFleetAdmin) {
+            this._viewModel.setProperty("/adminProfile", adminProfile);
+            this._setView("adminDashboard", "admin");
+            await this._loadDriverList();
+            return;
+          }
+          if (adminProfile) {
+            // Authenticated via XSUAA but does not have the FleetAdmin role.
+            this._setView("error401", null);
+            return;
+          }
+        } catch (error) {
+          // XSUAA auth failed — fall through to login page.
         }
-        // Authenticated via XSUAA but does not have the FleetAdmin role.
-        this._setView("error401", null);
-        return;
-      } catch (error) {
-        // 401 means user is not XSUAA-authenticated — show the login page.
-        // Any other error also falls through to the login page.
+        // Admin login was intended but auth failed — clear the intent.
+        try {
+          window.sessionStorage.removeItem("adminLoginIntent");
+        } catch (e) { /* private browsing */ }
       }
 
       this._setView("loginPage", null);
@@ -450,7 +595,7 @@ sap.ui.define([
         this._recordClientUpdateLatency(clientUpdateEnd - clientUpdateStart);
         this._refreshMetrics();
       } catch (error) {
-        MessageBox.error(error.message || "Unable to persist the current position.");
+        this._viewModel.setProperty("/statusText", error.message || "Unable to persist the current position");
       }
     },
 
@@ -554,6 +699,14 @@ sap.ui.define([
 
       this._polyline.setLatLngs(this._points);
 
+      if (this._points.length === 0) {
+        if (this._marker) {
+          this._map.removeLayer(this._marker);
+          this._marker = null;
+        }
+        return;
+      }
+
       if (latestPoint) {
         if (!this._marker) {
           this._marker = window.L.marker(latestPoint).addTo(this._map);
@@ -566,6 +719,12 @@ sap.ui.define([
       }
 
       if (this._points.length > 1) {
+        const last = this._points[this._points.length - 1];
+        if (!this._marker) {
+          this._marker = window.L.marker(last).addTo(this._map);
+        } else {
+          this._marker.setLatLng(last);
+        }
         this._map.fitBounds(this._polyline.getBounds(), { padding: [20, 20] });
       } else if (this._points.length === 1) {
         if (!this._marker) {
@@ -587,7 +746,8 @@ sap.ui.define([
     _get: async function (url) {
       const response = await fetch(url, {
         headers: {
-          Accept: "application/json"
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
@@ -603,7 +763,8 @@ sap.ui.define([
     _post: async function (url, payload) {
       const headers = {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       };
       const csrfToken = this._viewModel.getProperty("/driverCsrfToken");
       if (csrfToken) {
@@ -628,7 +789,8 @@ sap.ui.define([
     _adminGet: async function (url) {
       const response = await fetch(url, {
         headers: {
-          Accept: "application/json"
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
@@ -642,11 +804,15 @@ sap.ui.define([
     },
 
     _adminPost: async function (url, payload) {
+      const csrfToken = await this._getAdminCsrfToken();
       const headers = {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-CSRF-Token": await this._getAdminCsrfToken()
+        "X-Requested-With": "XMLHttpRequest"
       };
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
 
       const response = await fetch(url, {
         method: "POST",
@@ -663,6 +829,7 @@ sap.ui.define([
       return response.json();
     },
 
+
     _getAdminCsrfToken: async function () {
       if (this._adminCsrfToken) {
         return this._adminCsrfToken;
@@ -670,7 +837,8 @@ sap.ui.define([
 
       const response = await fetch("/tracker/$metadata", {
         headers: {
-          "X-CSRF-Token": "Fetch"
+          "X-CSRF-Token": "Fetch",
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
@@ -788,13 +956,52 @@ sap.ui.define([
     },
 
     _getAdminProfile: async function () {
-      const response = await this._get("/tracker/me()");
+      // Use redirect:"manual" so the approuter's XSUAA 302-redirect to
+      // accounts.sap.com is NOT followed by the browser.  Instead we see
+      // a "type: opaqueredirect" response and can treat it as "not logged in".
+      var response = await fetch("/tracker/me()", {
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        redirect: "manual"
+      });
+
+      // An opaque redirect (type === "opaqueredirect") means the approuter
+      // tried to send us to the IDP login page — treat as unauthenticated.
+      if (response.type === "opaqueredirect" || response.status === 0) {
+        return null;
+      }
+
+      if (!response.ok) {
+        var error = new Error(await this._extractError(response));
+        error.status = response.status;
+        throw error;
+      }
+
+      var data = await response.json();
 
       return {
-        name: response && response.name ? response.name : "Fleet Admin",
-        email: response && response.email ? response.email : "",
-        isFleetAdmin: Boolean(response && response.isAdmin)
+        name: data && data.name ? data.name : "Fleet Admin",
+        email: data && data.email ? data.email : "",
+        isFleetAdmin: Boolean(data && data.isAdmin)
       };
+    },
+
+    _refreshAdminMetrics: async function (driverId) {
+      if (!driverId) {
+        return;
+      }
+
+      try {
+        var metrics = await this._adminGet("/tracker/driverMetrics/" + driverId);
+        this._viewModel.setProperty("/metrics", Object.assign({}, metrics, {
+          avgClientUpdateLatencyMs: 0,
+          latestClientUpdateLatencyMs: 0
+        }));
+      } catch (error) {
+        this._viewModel.setProperty("/statusText", "Admin metrics unavailable");
+      }
     }
   });
 });
