@@ -7,6 +7,8 @@ app/locationtracker/dist/
 default-*.json
 *.sqlite
 
+
+
 # MTA
 mta_archives/
 *_mta_build_tmp

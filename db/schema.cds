@@ -12,10 +12,90 @@ entity Drivers : cuid, managed {
   vehicleId          : String(80);
   phone              : String(40);
   isActive           : Boolean default true;
-  admin              : Association to Admins not null;
+  admin              : Association to Admins;
+  registrationStatus : String(20) enum { PENDING; APPROVED; REJECTED; } default 'PENDING';
+  licenseNumber      : String(80);
+  licenseExpiry      : Date;
+  documentUrl        : String(500);
   trips              : Composition of many Trips on trips.driver = $self;
   sessions           : Composition of many DriverSessions on sessions.driver = $self;
 }
+
+// New FreightOrders entity (declared before Trips to satisfy forward references)
+entity FreightOrders : cuid, managed {
+  orderNumber       : String(40);
+  admin             : Association to Admins;
+  truck             : Association to Trucks;
+  driver            : Association to Drivers;
+  trip              : Association to Trips;
+  origin            : String(200);
+  destination       : String(200);
+  plannedDeparture  : Timestamp;
+  plannedArrival    : Timestamp;
+  actualArrival     : Timestamp;
+  status            : String(20) enum { PLANNED; DISPATCHED; DELIVERED; CANCELLED; } default 'PLANNED';
+  checkpointCount   : Integer default 0;
+}
+
+entity GatePasses : cuid, managed {
+  freightOrder  : Association to FreightOrders;
+  truck         : Association to Trucks;
+  driver        : Association to Drivers;
+  gateOfficer   : String(120);
+  direction     : String(3) enum { OUT; INN; };
+  passedAt      : Timestamp;
+  remarks       : String(300);
+  status        : String(20) enum { PENDING; APPROVED; REJECTED; } default 'PENDING';
+}
+
+entity CheckpointReadings : cuid, managed {
+  freightOrder  : Association to FreightOrders not null;
+  checkpointNo  : Integer;
+  fuelLitres    : Decimal(7,2);
+  tyreFL        : Decimal(5,1);
+  tyreFR        : Decimal(5,1);
+  tyreRL        : Decimal(5,1);
+  tyreRR        : Decimal(5,1);
+  odometerKm    : Decimal(9,1);
+  driverNote    : String(500);
+  latitude      : Decimal(9,6);
+  longitude     : Decimal(9,6);
+  capturedAt    : Timestamp;
+}
+
+entity VehicleMetrics : cuid, managed {
+  truck         : Association to Trucks not null;
+  trip          : Association to Trips;
+  fuelLitres    : Decimal(7,2);
+  tyreFL        : Decimal(5,1);
+  tyreFR        : Decimal(5,1);
+  tyreRL        : Decimal(5,1);
+  tyreRR        : Decimal(5,1);
+  engineTempC   : Decimal(5,1);
+  odometerKm    : Decimal(9,1);
+  source        : String(20) enum { MANUAL; OBD; SCHEDULED; } default 'MANUAL';
+  capturedAt    : Timestamp;
+}
+
+entity AlertThresholds : cuid, managed {
+  truck         : Association to Trucks;
+  admin         : Association to Admins;
+  metricType    : String(30);
+  warningAt     : Decimal(9,2);
+  criticalAt    : Decimal(9,2);
+}
+
+entity AlertEvents : cuid, managed {
+  truck         : Association to Trucks;
+  trip          : Association to Trips;
+  metricType    : String(30);
+  severity      : String(10) enum { WARNING; CRITICAL; };
+  value         : Decimal(9,2);
+  threshold     : Decimal(9,2);
+  isRead        : Boolean default false;
+  firedAt       : Timestamp;
+}
+
 entity Trips : cuid, managed {
   title        : String(120);
   driver       : Association to Drivers;
@@ -27,8 +107,11 @@ entity Trips : cuid, managed {
     COMPLETED;
     PAUSED;
   } default 'ACTIVE';
+  checkpointCount : Integer default 0;
+  freightOrder    : Association to FreightOrders;
   points       : Composition of many LocationPoints on points.trip = $self;
 }
+
 entity LocationPoints : cuid, managed {
   trip       : Association to Trips not null;
   latitude   : Decimal(9, 6);
@@ -40,6 +123,7 @@ entity LocationPoints : cuid, managed {
   recordedAt : Timestamp;
   source     : String(30);
 }
+
 entity Vehicles : cuid, managed {
   vehicle_number      : Integer;
   type                : String;
