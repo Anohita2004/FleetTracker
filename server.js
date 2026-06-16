@@ -92,6 +92,19 @@ cds.on("bootstrap", (app) => {
   app.use(cookieParser());
   app.use(require("express").json());
 
+  const fs = require('fs');
+  const multer = require('multer');
+  const uploadDir = 'uploads/driver-docs';
+  fs.mkdirSync(uploadDir, { recursive: true });
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) { cb(null, uploadDir); },
+    filename: function (req, file, cb) {
+      const driverId = (req.body && req.body.driverId) ? String(req.body.driverId) : cds.utils.uuid();
+      cb(null, `${driverId}-${file.originalname}`);
+    }
+  });
+  const upload = multer({ storage });
+
   // After XSUAA authenticates the admin via the /login route, the AppRouter forwards
   // the request here. We immediately redirect the browser to the real app URL so that
   // the UI5 bootstrap resolves "./" correctly against /comlocationtrackerlocationtracker/
@@ -244,6 +257,11 @@ cds.on("bootstrap", (app) => {
 
       const db = await dbPromise;
       const driver = await getDriverByEmail(db, email);
+
+      if (driver && driver.registrationStatus && driver.registrationStatus !== 'APPROVED') {
+        return res.status(403).json({ error: "Your registration is pending admin approval" });
+      }
+
       const hashToCompare = driver?.passwordHash || DUMMY_BCRYPT_HASH;
       const passwordOk = await bcrypt.compare(password, hashToCompare);
       if (!driver || !driver.isActive || !driver.passwordHash || !passwordOk) {
@@ -993,6 +1011,431 @@ cds.on("bootstrap", (app) => {
           availableDrivers: availableDrivers.length,
           trucks: normalizedTrucks
         });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Self-registration endpoints ---
+    app.post('/drivers/register', async (req, res, next) => {
+      try {
+        const { name, email, password, phone, licenseNumber, licenseExpiry } = req.body || {};
+        if (!name || !email || !password || !phone || !licenseNumber) {
+          return res.status(400).json({ error: 'Missing required fields' });
+        }
+        if (String(email).indexOf('@') === -1) {
+          return res.status(400).json({ error: 'Invalid email address' });
+        }
+        if (String(password).length < PASSWORD_MIN_LENGTH) {
+          return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` });
+        }
+
+        const db = await dbPromise;
+        const existing = await db.run(SELECT.one.from('tracker.Drivers').where({ email: normalizeEmail(email) }));
+        if (existing) {
+          return res.status(409).json({ error: 'Email already registered' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const entry = {
+          ID: cds.utils.uuid(),
+          name,
+          email: normalizeEmail(email),
+          passwordHash,
+          phone,
+          licenseNumber: licenseNumber || null,
+          licenseExpiry: licenseExpiry || null,
+          registrationStatus: 'PENDING',
+          isActive: false,
+          admin_ID: null,
+          createdAt: nowISO()
+        };
+
+        await db.run(INSERT.into('tracker.Drivers').entries(entry));
+        return res.status(201).json({ success: true, message: 'Registration submitted. Await admin approval.', driverId: entry.ID });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post('/drivers/register/upload-doc', upload.single('document'), async (req, res, next) => {
+      try {
+        const driverId = req.body?.driverId;
+        if (!driverId) return res.status(400).json({ error: 'driverId is required' });
+        if (!req.file) return res.status(400).json({ error: 'document file is required' });
+
+        const documentUrl = `${uploadDir}/${req.file.filename}`;
+        const db = await dbPromise;
+        await db.run(UPDATE('tracker.Drivers').set({ documentUrl }).where({ ID: driverId }));
+        return res.json({ success: true, documentUrl });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Admin registration management ---
+    app.get('/tracker/pending-registrations', requireAdminAuth, async (req, res, next) => {
+      try {
+        const secCtx = req.user;
+        if (!secCtx && process.env.NODE_ENV === 'production') return res.status(401).json({ error: 'Unauthorized' });
+        const db = await cds.connect.to('db');
+        const pending = await db.run(SELECT.from('tracker.Drivers').columns('ID','name','email','phone','licenseNumber','licenseExpiry','documentUrl','createdAt').where({ registrationStatus: 'PENDING' }).orderBy('createdAt desc'));
+        return res.json({ value: pending || [] });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post('/tracker/drivers/:id/approve', requireAdminAuth, async (req, res, next) => {
+      try {
+        const secCtx = req.user;
+        if (!secCtx && process.env.NODE_ENV === 'production') return res.status(401).json({ error: 'Unauthorized' });
+        const db = await cds.connect.to('db');
+        const email = typeof secCtx.getLogonName === 'function' ? normalizeEmail(secCtx.getLogonName()) : normalizeEmail(secCtx.id || secCtx.logonName || '');
+        let admin = await db.run(SELECT.one.from('tracker.Admins').where({ email }));
+        if (!admin) return res.status(404).json({ error: 'Admin profile not found' });
+
+        const driverId = req.params.id;
+        await db.run(UPDATE('tracker.Drivers').set({ registrationStatus: 'APPROVED', isActive: true, admin_ID: admin.ID }).where({ ID: driverId }));
+        const updated = await db.run(SELECT.one.from('tracker.Drivers').columns(...driverSelectFields, 'registrationStatus').where({ ID: driverId }));
+        if (!updated) return res.status(404).json({ error: 'Driver not found' });
+        return res.json(updated);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post('/tracker/drivers/:id/reject', requireAdminAuth, async (req, res, next) => {
+      try {
+        const driverId = req.params.id;
+        const reason = req.body?.reason || null;
+        const db = await cds.connect.to('db');
+        const result = await db.run(UPDATE('tracker.Drivers').set({ registrationStatus: 'REJECTED', isActive: false }).where({ ID: driverId }));
+        // Check if driver exists
+        const driver = await db.run(SELECT.one.from('tracker.Drivers').where({ ID: driverId }));
+        if (!driver) return res.status(404).json({ error: 'Driver not found' });
+        return res.json({ success: true, driverId, reason });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Additional TMS endpoints ---
+    // Helper: resolve admin from req.user
+    const getAdminFromReq = async (db, req) => {
+      const secCtx = req.user;
+      if (!secCtx) return null;
+      const email = normalizeEmail(
+        typeof secCtx.getLogonName === 'function' ? secCtx.getLogonName() : secCtx.id || ''
+      );
+      return await db.run(SELECT.one.from('tracker.Admins').where({ email }));
+    };
+
+    // Endpoint 1: Create Freight Order
+    app.post('/tracker/freight-orders', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const { orderNumber, truck_ID, driver_ID, origin, destination, plannedDeparture, plannedArrival, checkpointCount } = req.body || {};
+        if (!truck_ID || !driver_ID || !origin || !destination) {
+          return res.status(400).json({ error: 'truck_ID, driver_ID, origin and destination are required' });
+        }
+
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ ID: truck_ID, admin_ID: admin.ID }));
+        if (!truck) return res.status(403).json({ error: 'Truck does not belong to this admin' });
+
+        const driver = await db.run(SELECT.one.from('tracker.Drivers').where({ ID: driver_ID, admin_ID: admin.ID, registrationStatus: 'APPROVED' }));
+        if (!driver) return res.status(403).json({ error: 'Driver not found or not approved under this admin' });
+
+        const entry = {
+          ID: cds.utils.uuid(),
+          orderNumber: orderNumber || null,
+          admin_ID: admin.ID,
+          truck_ID,
+          driver_ID,
+          origin,
+          destination,
+          plannedDeparture: plannedDeparture || null,
+          plannedArrival: plannedArrival || null,
+          actualArrival: null,
+          status: 'PLANNED',
+          checkpointCount: checkpointCount || 0,
+          createdAt: nowISO()
+        };
+
+        await db.run(INSERT.into('tracker.FreightOrders').entries(entry));
+        const created = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: entry.ID }));
+        return res.status(201).json(created);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 2: List Freight Orders
+    app.get('/tracker/freight-orders', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const statusFilter = req.query?.status;
+        const where = { admin_ID: admin.ID };
+        if (statusFilter) where.status = statusFilter;
+
+        const orders = await db.run(SELECT.from('tracker.FreightOrders').where(where).orderBy('createdAt desc'));
+
+        const truckIds = Array.from(new Set((orders || []).map(o => o.truck_ID).filter(Boolean)));
+        const driverIds = Array.from(new Set((orders || []).map(o => o.driver_ID).filter(Boolean)));
+
+        const trucks = truckIds.length ? await db.run(SELECT.from('tracker.Trucks').where({ ID: { in: truckIds } })) : [];
+        const drivers = driverIds.length ? await db.run(SELECT.from('tracker.Drivers').where({ ID: { in: driverIds } })) : [];
+
+        const truckMap = {}; (trucks || []).forEach(t => { truckMap[t.ID || t.id] = t; });
+        const driverMap = {}; (drivers || []).forEach(d => { driverMap[d.ID || d.id] = d; });
+
+        const enriched = (orders || []).map(o => ({
+          ...o,
+          truckNumber: truckMap[o.truck_ID]?.truckNumber || null,
+          driverName: driverMap[o.driver_ID]?.name || null
+        }));
+
+        return res.json({ value: enriched });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 3: Update Freight Order
+    app.put('/tracker/freight-orders/:id', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const existing = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: id }));
+        if (!existing) return res.status(404).json({ error: 'Freight order not found' });
+        if (existing.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        const updates = {};
+        [ 'status', 'checkpointCount', 'plannedDeparture', 'plannedArrival', 'actualArrival' ].forEach((k) => {
+          if (Object.prototype.hasOwnProperty.call(req.body, k)) updates[k] = req.body[k];
+        });
+
+        if (Object.keys(updates).length > 0) {
+          await db.run(UPDATE('tracker.FreightOrders').set(updates).where({ ID: id }));
+        }
+
+        const updated = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: id }));
+        return res.json(updated);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 4: Dispatch Freight Order (create Trip)
+    app.post('/tracker/freight-orders/:id/dispatch', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const order = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: id }));
+        if (!order) return res.status(404).json({ error: 'Freight order not found' });
+        if (order.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+        if (order.status !== 'PLANNED') return res.status(400).json({ error: 'Only PLANNED orders can be dispatched' });
+        if (order.trip_ID) return res.status(400).json({ error: 'Order already has a linked trip' });
+
+        const newTrip = {
+          ID: cds.utils.uuid(),
+          title: `Freight Order ${order.orderNumber || order.ID} — ${order.origin || ''} to ${order.destination || ''}`,
+          driver_ID: order.driver_ID,
+          startedAt: nowISO(),
+          status: 'ACTIVE',
+          checkpointCount: order.checkpointCount || 0,
+          freightOrder_ID: order.ID
+        };
+
+        await db.run(INSERT.into('tracker.Trips').entries(newTrip));
+        await db.run(UPDATE('tracker.FreightOrders').set({ status: 'DISPATCHED', trip_ID: newTrip.ID }).where({ ID: order.ID }));
+
+        const updatedOrder = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: order.ID }));
+        return res.json({ freightOrder: updatedOrder, trip: newTrip });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 5: Create Gate Pass
+    app.post('/tracker/gate-passes', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const { freightOrder_ID, truck_ID, driver_ID, gateOfficer, direction, remarks } = req.body || {};
+        if (!freightOrder_ID || !direction) return res.status(400).json({ error: 'freightOrder_ID and direction are required' });
+        if (!(direction === 'OUT' || direction === 'IN')) return res.status(400).json({ error: 'direction must be OUT or IN' });
+
+        const order = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: freightOrder_ID }));
+        if (!order) return res.status(404).json({ error: 'Freight order not found' });
+        if (order.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        const dbDirection = direction === 'IN' ? 'INN' : 'OUT';
+
+        const entry = {
+          ID: cds.utils.uuid(),
+          freightOrder_ID,
+          truck_ID: truck_ID || null,
+          driver_ID: driver_ID || null,
+          gateOfficer: gateOfficer || null,
+          direction: dbDirection,
+          passedAt: nowISO(),
+          remarks: remarks || null,
+          status: 'APPROVED',
+          createdAt: nowISO()
+        };
+
+        await db.run(INSERT.into('tracker.GatePasses').entries(entry));
+        const created = await db.run(SELECT.one.from('tracker.GatePasses').where({ ID: entry.ID }));
+        return res.status(201).json(created);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 6: List Gate Passes
+    app.get('/tracker/gate-passes', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const orders = await db.run(SELECT.from('tracker.FreightOrders').where({ admin_ID: admin.ID }).columns('ID'));
+        const orderIds = (orders || []).map(o => o.ID);
+        if (orderIds.length === 0) return res.json({ value: [] });
+
+        const truckId = req.query?.truckId;
+        const freightOrderId = req.query?.freightOrderId;
+
+        const where = { freightOrder_ID: { in: orderIds } };
+        if (truckId) where.truck_ID = truckId;
+        if (freightOrderId) where.freightOrder_ID = freightOrderId;
+
+        const passes = await db.run(SELECT.from('tracker.GatePasses').where(where).orderBy('passedAt desc'));
+
+        const truckIds = Array.from(new Set((passes || []).map(p => p.truck_ID).filter(Boolean)));
+        const driverIds = Array.from(new Set((passes || []).map(p => p.driver_ID).filter(Boolean)));
+        const freightIds = Array.from(new Set((passes || []).map(p => p.freightOrder_ID).filter(Boolean)));
+
+        const trucks = truckIds.length ? await db.run(SELECT.from('tracker.Trucks').where({ ID: { in: truckIds } })) : [];
+        const drivers = driverIds.length ? await db.run(SELECT.from('tracker.Drivers').where({ ID: { in: driverIds } })) : [];
+        const freights = freightIds.length ? await db.run(SELECT.from('tracker.FreightOrders').where({ ID: { in: freightIds } })) : [];
+
+        const truckMap = {}; (trucks || []).forEach(t => { truckMap[t.ID || t.id] = t; });
+        const driverMap = {}; (drivers || []).forEach(d => { driverMap[d.ID || d.id] = d; });
+        const orderMap = {}; (freights || []).forEach(f => { orderMap[f.ID || f.id] = f; });
+
+        const enriched = (passes || []).map(p => ({
+          ...p,
+          truckNumber: truckMap[p.truck_ID]?.truckNumber || null,
+          driverName: driverMap[p.driver_ID]?.name || null,
+          orderNumber: orderMap[p.freightOrder_ID]?.orderNumber || null
+        }));
+
+        return res.json({ value: enriched });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 7: Driver checkpoint status
+    app.get('/drivers/checkpoint-status', requireDriverAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const trip = await getActiveTrip(db, req.driver.ID);
+        if (!trip) return res.json({ hasActiveTrip: false, checkpointCount: 0, submitted: 0, nextCheckpointNo: null });
+        if (!trip.checkpointCount || trip.checkpointCount === 0) {
+          return res.json({ hasActiveTrip: true, checkpointCount: 0, submitted: 0, nextCheckpointNo: null, message: 'No checkpoints required for this trip' });
+        }
+
+        const freightOrderId = trip.freightOrder_ID;
+        const rows = await db.run(SELECT.from('tracker.CheckpointReadings').where({ freightOrder_ID: freightOrderId }).columns('count(1) as count'));
+        const submitted = Number(rows?.[0]?.count || 0);
+        return res.json({
+          hasActiveTrip: true,
+          tripId: trip.ID,
+          freightOrder_ID: freightOrderId,
+          checkpointCount: trip.checkpointCount,
+          submitted,
+          remaining: trip.checkpointCount - submitted,
+          nextCheckpointNo: submitted + 1,
+          isComplete: submitted >= trip.checkpointCount
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 8: Submit checkpoint reading
+    app.post('/drivers/checkpoints', requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const { freightOrder_ID, checkpointNo, fuelLitres, tyreFL, tyreFR, tyreRL, tyreRR, odometerKm, driverNote, latitude, longitude } = req.body || {};
+        if (!freightOrder_ID || checkpointNo == null) return res.status(400).json({ error: 'freightOrder_ID and checkpointNo are required' });
+
+        const trip = await getActiveTrip(db, req.driver.ID);
+        if (!trip) return res.status(400).json({ error: 'No active trip' });
+        if (String(trip.freightOrder_ID) !== String(freightOrder_ID)) return res.status(403).json({ error: 'Checkpoint does not belong to current trip' });
+
+        const freight = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: freightOrder_ID }));
+        if (!freight) return res.status(404).json({ error: 'Freight order not found' });
+        if (checkpointNo > (freight.checkpointCount || 0)) return res.status(400).json({ error: 'Checkpoint number exceeds required count for this trip' });
+
+        const existing = await db.run(SELECT.one.from('tracker.CheckpointReadings').where({ freightOrder_ID, checkpointNo }));
+        if (existing) return res.status(409).json({ error: 'Checkpoint already submitted' });
+
+        const entry = {
+          ID: cds.utils.uuid(),
+          freightOrder_ID,
+          checkpointNo,
+          fuelLitres: fuelLitres ?? null,
+          tyreFL: tyreFL ?? null,
+          tyreFR: tyreFR ?? null,
+          tyreRL: tyreRL ?? null,
+          tyreRR: tyreRR ?? null,
+          odometerKm: odometerKm ?? null,
+          driverNote: driverNote || null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
+          capturedAt: nowISO(),
+          createdAt: nowISO()
+        };
+
+        await db.run(INSERT.into('tracker.CheckpointReadings').entries(entry));
+        return res.status(201).json(entry);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 9: List checkpoints for freight order
+    app.get('/tracker/freight-orders/:id/checkpoints', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const order = await db.run(SELECT.one.from('tracker.FreightOrders').where({ ID: id }));
+        if (!order) return res.status(404).json({ error: 'Freight order not found' });
+        if (order.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        const readings = await db.run(SELECT.from('tracker.CheckpointReadings').where({ freightOrder_ID: id }).orderBy('checkpointNo asc'));
+        return res.json({ freightOrder_ID: id, checkpointCount: order.checkpointCount || 0, readings: readings || [] });
       } catch (err) {
         next(err);
       }

@@ -6,8 +6,7 @@ app/locationtracker/dist/
 .cdsrc-private.json
 default-*.json
 *.sqlite
-
-
+uploads/
 
 # MTA
 mta_archives/

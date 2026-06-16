@@ -101,7 +101,9 @@ module.exports = cds.service.impl(function () {
     "email",
     "vehicleId",
     "phone",
-    "isActive"
+    "isActive",
+    "registrationStatus",
+    "licenseNumber"
   ];
 
   const getActiveTrip = (driverId) =>
