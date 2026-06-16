@@ -33,13 +33,6 @@ sap.ui.define([
         },
         drivers: [],
         trucks: [],
-        addDriver: {
-          name: "",
-          email: "",
-          password: "",
-          vehicleId: "",
-          phone: ""
-        },
         addTruck: {
           truckNumber: null,
           model: "",

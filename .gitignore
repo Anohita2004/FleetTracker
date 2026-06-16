@@ -2,7 +2,7 @@ node_modules/
 target/
 _out/
 gen/
-
+app/locationtracker/dist/
 .cdsrc-private.json
 default-*.json
 *.sqlite

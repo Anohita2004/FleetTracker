@@ -171,60 +171,6 @@ module.exports = cds.service.impl(function () {
     };
   });
 
-  this.on("createDriver", async (req) => {
-    const admin = await ensureAdminProfile(req);
-    if (!admin) return req.reject(403, "Only fleet admins can create drivers");
-
-    const rawDb = cds.tx(req);
-    const email = normalizeEmail(req.data.email);
-    const password = String(req.data.password || "");
-    if (!email) return req.reject(400, "Driver email is required");
-    if (!password || password.length < 8) {
-      return req.reject(400, "Driver password is required and must be at least 8 characters");
-    }
-
-    const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
-
-    const existingDriver = await rawDb.run(
-      SELECT.one.from("tracker.Drivers")
-        .columns("ID", "name", "email", "vehicleId", "phone", "isActive", "admin_ID")
-        .where({ email })
-    );
-    if (existingDriver && existingDriver.admin_ID !== admin.ID) {
-      return req.reject(409, "A driver with this email is already assigned to another admin");
-    }
-
-    if (existingDriver) {
-      await rawDb.run(UPDATE("tracker.Drivers")
-        .set({
-          name: req.data.name || existingDriver.name,
-          phone: req.data.phone || existingDriver.phone,
-          vehicleId: req.data.vehicleId || existingDriver.vehicleId,
-          passwordHash,
-          isActive: true
-        })
-        .where({ ID: existingDriver.ID }));
-      return rawDb.run(
-        SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: existingDriver.ID })
-      );
-    }
-
-    const entry = {
-      ID: cds.utils.uuid(),
-      name: req.data.name || email,
-      email,
-      vehicleId: req.data.vehicleId || null,
-      phone: req.data.phone || null,
-      passwordHash,
-      isActive: true,
-      admin_ID: admin.ID
-    };
-
-    await rawDb.run(INSERT.into("tracker.Drivers").entries(entry));
-    return rawDb.run(
-      SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: entry.ID })
-    );
-  });
 
   this.on("listDrivers", async (req) => {
     const admin = await ensureAdminProfile(req);

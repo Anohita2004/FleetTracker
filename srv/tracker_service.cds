@@ -57,14 +57,6 @@ service TrackerService @(path : '/tracker') {
 
   function me() returns UserContext;
 
-  @requires: 'FleetAdmin'
-  action createDriver(
-    name     : String,
-    email    : String,
-    password : String,
-    vehicleId: String,
-    phone    : String
-  ) returns Drivers;
 
   @requires: 'FleetAdmin'
   function listDrivers() returns array of Drivers;

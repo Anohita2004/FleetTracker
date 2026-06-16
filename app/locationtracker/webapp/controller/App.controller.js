@@ -116,51 +116,8 @@ sap.ui.define([
       this._setView("loginPage", null);
     },
 
-    onOpenAddDriverDialog: async function () {
-      if (!this._addDriverDialog) {
-        this._addDriverDialog = await Fragment.load({
-          id: this.getView().getId(),
-          name: "com.locationtracker.locationtracker.fragment.AddDriverDialog",
-          controller: this
-        });
-        this.getView().addDependent(this._addDriverDialog);
-      }
 
-      this._viewModel.setProperty("/addDriver", {
-        name: "",
-        email: "",
-        password: "",
-        vehicleId: "",
-        phone: ""
-      });
 
-      this._addDriverDialog.open();
-    },
-
-    onCancelAddDriver: function () {
-      if (this._addDriverDialog) {
-        this._addDriverDialog.close();
-      }
-    },
-
-    onCreateDriver: async function () {
-      const payload = this._viewModel.getProperty("/addDriver") || {};
-      if (!payload.name || !payload.email || !payload.password) {
-        MessageBox.error("Name, email, and temporary password are required.");
-        return;
-      }
-
-      try {
-        await this._adminPost("/tracker/createDriver", payload);
-        if (this._addDriverDialog) {
-          this._addDriverDialog.close();
-        }
-        await this._loadDriverList();
-        MessageToast.show("Driver created");
-      } catch (error) {
-        MessageBox.error(error.message || "Unable to create driver");
-      }
-    },
 
     // --- Trucks management ---
     onOpenAddTruckDialog: async function () {
