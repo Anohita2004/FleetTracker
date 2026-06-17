@@ -32,6 +32,10 @@ sap.ui.define([
           password: ""
         },
         drivers: [],
+        pendingDrivers: [],
+        pendingDriverCount: 0,
+        rejectReason: "",
+        selectedPendingDriverId: null,
         trucks: [],
         addTruck: {
           truckNumber: null,

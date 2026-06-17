@@ -47,6 +47,7 @@ sap.ui.define([
         }.bind(this)
       });
 
+      this._loadPendingRegistrations();
       this._checkAuthStatus();
     },
 
@@ -537,7 +538,7 @@ sap.ui.define([
       }
 
       try {
-        const response = await this._adminGet("/tracker/listDrivers()");
+        const response = await this._adminGet("/tracker/Drivers?$select=ID,name,email,vehicleId,phone,isActive,activityStatus,registrationStatus,licenseNumber,createdAt,documentUrl");
         const rawDrivers = this._getODataCollection(response);
         const drivers = rawDrivers.map(function (driver) {
           return this._normalizeDriver(driver);
@@ -548,9 +549,113 @@ sap.ui.define([
       }
     },
 
+        _loadPendingRegistrations: async function () {
+          try {
+            const resp = await fetch('/tracker/pending-registrations', {
+              credentials: 'include',
+              headers: { 'Authorization': 'Bearer ' + (this._xsuaaToken || '') }
+            });
+            if (!resp.ok) throw new Error(await resp.text());
+            const data = await resp.json();
+            const model = this.getView().getModel('appState');
+            model.setProperty('/pendingDrivers', data.value || []);
+            model.setProperty('/pendingDriverCount', (data.value || []).length);
+          } catch (err) {
+            sap.m.MessageToast.show('Failed to load pending registrations: ' + err.message);
+          }
+        },
 
+        onApproveDriver: async function (oEvent) {
+          const driverId = oEvent.getSource().data('driverId');
+          try {
+            await this._ensureCsrfToken();
+            const resp = await fetch(`/tracker/drivers/${driverId}/approve`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'X-CSRF-Token': this._csrfToken,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (!resp.ok) {
+              const err = await resp.json();
+              throw new Error(err.error || resp.statusText);
+            }
+            sap.m.MessageToast.show('Driver approved successfully');
+            this._loadPendingRegistrations();
+            this._loadDriverList();
+          } catch (err) {
+            sap.m.MessageBox.error('Approval failed: ' + err.message);
+          }
+        },
 
-    _getODataCollection: function (response) {
+        onOpenRejectDialog: async function (oEvent) {
+          const driverId = oEvent.getSource().data('driverId');
+          const model = this.getView().getModel('appState');
+          model.setProperty('/selectedPendingDriverId', driverId);
+          model.setProperty('/rejectReason', '');
+
+          if (!this._rejectDriverDialog) {
+            this._rejectDriverDialog = await Fragment.load({
+              name: 'com.locationtracker.locationtracker.fragment.RejectDriverDialog',
+              controller: this
+            });
+            this.getView().addDependent(this._rejectDriverDialog);
+          }
+          this._rejectDriverDialog.open();
+        },
+
+        onConfirmRejectDriver: async function () {
+          const model   = this.getView().getModel('appState');
+          const driverId = model.getProperty('/selectedPendingDriverId');
+          const reason   = model.getProperty('/rejectReason');
+
+          try {
+            await this._ensureCsrfToken();
+            const resp = await fetch(`/tracker/drivers/${driverId}/reject`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'X-CSRF-Token': this._csrfToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ reason })
+            });
+            if (!resp.ok) {
+              const err = await resp.json();
+              throw new Error(err.error || resp.statusText);
+            }
+            sap.m.MessageToast.show('Driver rejected');
+            this._rejectDriverDialog.close();
+            this._loadPendingRegistrations();
+          } catch (err) {
+            sap.m.MessageBox.error('Rejection failed: ' + err.message);
+          }
+        },
+
+        onCancelRejectDriver: function () {
+          if (this._rejectDriverDialog) {
+            this._rejectDriverDialog.close();
+          }
+        },
+
+        onViewDriverDoc: function (oEvent) {
+          const docUrl = oEvent.getSource().data('driverDocUrl');
+          if (docUrl) {
+            window.open(docUrl, '_blank', 'noopener,noreferrer');
+          }
+        },
+
+        _ensureCsrfToken: async function () {
+          if (this._csrfToken) return;
+          const resp = await fetch('/tracker/$metadata', {
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': 'Fetch' }
+          });
+          this._csrfToken = resp.headers.get('X-CSRF-Token');
+        },
+
+        _getODataCollection: function (response) {
       if (response && Array.isArray(response.value)) {
         return response.value;
       }

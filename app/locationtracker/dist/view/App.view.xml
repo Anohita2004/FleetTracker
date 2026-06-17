@@ -3,6 +3,7 @@
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
   xmlns:core="sap.ui.core"
+  xmlns:customData="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
   displayBlock="true">
   <App id="app">
     <pages>
@@ -65,6 +66,46 @@
 
               <VBox class="sectionCard">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">
+                  <Title text="Pending Registrations" level="H3" />
+                  <ObjectStatus text="{= ${appState>/pendingDriverCount} > 0 ? ${appState>/pendingDriverCount} + ' pending' : 'None'}" state="{= ${appState>/pendingDriverCount} > 0 ? 'Warning' : 'None'}" />
+                </HBox>
+                <Table items="{appState>/pendingDrivers}" class="sapUiSmallMarginTop" noDataText="No pending registrations">
+                  <columns>
+                    <Column><Text text="Name" /></Column>
+                    <Column><Text text="Email" /></Column>
+                    <Column><Text text="Phone" /></Column>
+                    <Column><Text text="License #" /></Column>
+                    <Column><Text text="License Expiry" /></Column>
+                    <Column><Text text="Document" /></Column>
+                    <Column><Text text="Actions" /></Column>
+                  </columns>
+                  <items>
+                    <ColumnListItem>
+                      <cells>
+                        <Text text="{appState>name}" />
+                        <Text text="{appState>email}" />
+                        <Text text="{appState>phone}" />
+                        <Text text="{appState>licenseNumber}" />
+                        <Text text="{= new Date(${appState>licenseExpiry}).toLocaleDateString()}" />
+                        <Button text="View" press=".onViewDriverDoc">
+                          <customData:CustomData key="driverDocUrl" value="{appState>documentUrl}" />
+                        </Button>
+                        <HBox>
+                          <Button text="Approve" type="Emphasized" press=".onApproveDriver">
+                            <customData:CustomData key="driverId" value="{appState>ID}" />
+                          </Button>
+                          <Button text="Reject" type="Reject" press=".onOpenRejectDialog">
+                            <customData:CustomData key="driverId" value="{appState>ID}" />
+                          </Button>
+                        </HBox>
+                      </cells>
+                    </ColumnListItem>
+                  </items>
+                </Table>
+              </VBox>
+
+              <VBox class="sectionCard">
+                <HBox justifyContent="SpaceBetween" alignItems="Center">
                   <Title text="Drivers" level="H3" />
                   <Text text="Manage the drivers in your fleet." />
                 </HBox>
@@ -75,6 +116,8 @@
                     <Column><Text text="Vehicle ID" /></Column>
                     <Column hAlign="Center"><Text text="Status" /></Column>
                     <Column hAlign="Center"><Text text="Activity" /></Column>
+                    <Column><Text text="License #" /></Column>
+                    <Column hAlign="Center"><Text text="Reg. Status" /></Column>
                     <Column hAlign="Center"><Text text="Action" /></Column>
                   </columns>
                   <items>
@@ -89,6 +132,10 @@
                         <ObjectStatus
                           text="{appState>activityStatus}"
                           state="{= ${appState>activityStatus} === 'On Trip' ? 'Success' : 'None' }" />
+                        <Text text="{appState>licenseNumber}" />
+                        <ObjectStatus
+                          text="{appState>registrationStatus}"
+                          state="{= ${appState>registrationStatus} === 'APPROVED' ? 'Success' : ${appState>registrationStatus} === 'PENDING' ? 'Warning' : 'Error' }" />
                         <HBox>
                           <Button icon="sap-icon://decline" type="Transparent" press=".onDeleteDriver"
                                   visible="{= ${appState>isActive} }" tooltip="Deactivate" />
