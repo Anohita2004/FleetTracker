@@ -94,10 +94,14 @@
                         </Button>
                         <HBox>
                           <Button text="Approve" type="Emphasized" press=".onApproveDriver">
-                            <customData:CustomData key="driverId" value="{appState>ID}" />
+                            <customData>
+                              <core:CustomData key="driverId" value="{appState>ID}" />
+                            </customData>
                           </Button>
                           <Button text="Reject" type="Reject" press=".onOpenRejectDialog">
-                            <customData:CustomData key="driverId" value="{appState>ID}" />
+                            <customData>
+                              <core:CustomData key="driverId" value="{appState>ID}" />
+                            </customData>
                           </Button>
                         </HBox>
                       </cells>
@@ -260,3 +264,4 @@
     </pages>
   </App>
 </mvc:View>
+
