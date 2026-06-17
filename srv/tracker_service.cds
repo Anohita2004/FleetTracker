@@ -31,6 +31,11 @@ service TrackerService @(path : '/tracker') {
     vehicleId,
     phone,
     isActive,
+    registrationStatus,
+    licenseNumber,
+    licenseExpiry,
+    documentUrl,
+    virtual activityStatus : String(20),
     admin,
     trips
   };

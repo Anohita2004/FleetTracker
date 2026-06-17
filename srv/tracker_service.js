@@ -144,6 +144,27 @@ module.exports = cds.service.impl(function () {
     req.query.where({ email: normalizeEmail(userId(req)) });
   });
 
+  this.after("READ", Drivers, async (drivers, req) => {
+    const rows = Array.isArray(drivers) ? drivers : drivers ? [drivers] : [];
+    const driverIds = rows.map((driver) => driver.ID).filter(Boolean);
+
+    if (driverIds.length === 0) {
+      return;
+    }
+
+    const db = cds.tx(req);
+    const activeTrips = await db.run(
+      SELECT.from("tracker.Trips")
+        .columns("driver_ID")
+        .where({ status: "ACTIVE", driver_ID: { in: driverIds } })
+    );
+    const activeDriverIds = new Set((activeTrips || []).map((trip) => trip.driver_ID));
+
+    rows.forEach((driver) => {
+      driver.activityStatus = activeDriverIds.has(driver.ID) ? "On Trip" : "Idle";
+    });
+  });
+
   this.before("READ", Trips, (req) => {
     if (isAdmin(req)) {
       req.query.where({ "driver.admin.email": normalizeEmail(userId(req)) });
