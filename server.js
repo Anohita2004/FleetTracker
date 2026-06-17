@@ -1441,4 +1441,645 @@ cds.on("bootstrap", (app) => {
       }
     });
 
+    // --- Vehicle metrics & alerting endpoints ---
+
+    const METRIC_TYPES = {
+      FUEL_LEVEL:    'FUEL_LEVEL',
+      TYRE_PRESSURE: 'TYRE_PRESSURE',
+      ENGINE_TEMP:   'ENGINE_TEMP'
+    };
+
+    // Endpoint 1: Submit vehicle metrics (driver)
+    app.post('/drivers/vehicle-metrics', requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const body = req.body || {};
+        const hasAny = ['fuelLitres','tyreFL','tyreFR','tyreRL','tyreRR','engineTempC','odometerKm'].some(k => Object.prototype.hasOwnProperty.call(body, k) && body[k] != null);
+        if (!hasAny) return res.status(400).json({ error: 'At least one metric value is required' });
+
+        const activeTrip = await getActiveTrip(db, req.driver.ID);
+
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ assignedDriver_ID: req.driver.ID }).where({ status: { '!=': 'DEACTIVATED' } }));
+        // Note: cds.ql doesn't support two where() chained like that; ensure unified where
+        // We'll instead run a single where with both conditions
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // To avoid code duplication for correct truck selection, replace previous handler with full implementation
+    // Rewriting the /drivers/vehicle-metrics handler
+    app.post('/drivers/vehicle-metrics', requireDriverAuth, requireDriverCsrf, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const body = req.body || {};
+        const keys = ['fuelLitres','tyreFL','tyreFR','tyreRL','tyreRR','engineTempC','odometerKm'];
+        const hasAny = keys.some(k => Object.prototype.hasOwnProperty.call(body, k) && body[k] != null);
+        if (!hasAny) return res.status(400).json({ error: 'At least one metric value is required' });
+
+        const activeTrip = await getActiveTrip(db, req.driver.ID);
+
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ assignedDriver_ID: req.driver.ID, status: { '!=': 'DEACTIVATED' } }));
+        if (!truck) return res.status(404).json({ error: 'No active truck assigned to this driver' });
+
+        const entry = {
+          ID: cds.utils.uuid(),
+          truck_ID: truck.ID,
+          trip_ID: activeTrip?.ID || null,
+          fuelLitres: body.fuelLitres ?? null,
+          tyreFL: body.tyreFL ?? null,
+          tyreFR: body.tyreFR ?? null,
+          tyreRL: body.tyreRL ?? null,
+          tyreRR: body.tyreRR ?? null,
+          engineTempC: body.engineTempC ?? null,
+          odometerKm: body.odometerKm ?? null,
+          source: 'MANUAL',
+          capturedAt: nowISO(),
+          createdAt: nowISO()
+        };
+
+        await db.run(INSERT.into('tracker.VehicleMetrics').entries(entry));
+        return res.status(201).json(entry);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 2: Get truck metrics (admin)
+    app.get('/tracker/trucks/:id/metrics', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ ID: id }));
+        if (!truck) return res.status(404).json({ error: 'Truck not found' });
+        if (truck.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        let limit = parseInt(req.query?.limit) || 50;
+        if (limit <= 0) limit = 50;
+        if (limit > 200) limit = 200;
+
+        const where = { truck_ID: id };
+        if (req.query?.from) where.capturedAt = Object.assign({}, where.capturedAt || {}, { '>=': req.query.from });
+        if (req.query?.to) where.capturedAt = Object.assign({}, where.capturedAt || {}, { '<=': req.query.to });
+
+        const readings = await db.run(SELECT.from('tracker.VehicleMetrics').where(where).orderBy('capturedAt desc').limit(limit));
+
+        // compute summary
+        const fuelVals = (readings || []).map(r => r.fuelLitres).filter(v => v != null).map(Number);
+        const avgFuel = fuelVals.length ? roundToTwoDecimals(fuelVals.reduce((a,b)=>a+b,0)/fuelVals.length) : 0;
+
+        const tyreVals = (readings || []).flatMap(r => [r.tyreFL, r.tyreFR, r.tyreRL, r.tyreRR].filter(v => v != null).map(Number));
+        const minTyre = tyreVals.length ? Math.min(...tyreVals) : null;
+
+        const engineVals = (readings || []).map(r => r.engineTempC).filter(v => v != null).map(Number);
+        const maxEngine = engineVals.length ? Math.max(...engineVals) : null;
+
+        const summary = {
+          avgFuelLitres: avgFuel,
+          minTyrePressure: minTyre,
+          maxEngineTemp: maxEngine,
+          totalReadings: (readings || []).length
+        };
+
+        return res.json({ truck_ID: id, summary, readings: readings || [] });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 3: Upsert alert thresholds for truck
+    app.post('/tracker/trucks/:id/thresholds', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ ID: id }));
+        if (!truck) return res.status(404).json({ error: 'Truck not found' });
+        if (truck.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        const body = req.body || {};
+        const upserted = [];
+
+        for (const metricKey of Object.keys(METRIC_TYPES)) {
+          const metricType = METRIC_TYPES[metricKey];
+          const cfg = body[metricType];
+          if (!cfg) continue;
+          const { warningAt, criticalAt } = cfg;
+
+          // validation
+          if (metricType === METRIC_TYPES.FUEL_LEVEL || metricType === METRIC_TYPES.TYRE_PRESSURE) {
+            if (criticalAt >= warningAt) return res.status(400).json({ error: `${metricType}: criticalAt must be less than warningAt` });
+          } else if (metricType === METRIC_TYPES.ENGINE_TEMP) {
+            if (criticalAt <= warningAt) return res.status(400).json({ error: `${metricType}: criticalAt must be greater than warningAt` });
+          }
+
+          const existing = await db.run(SELECT.one.from('tracker.AlertThresholds').where({ truck_ID: id, metricType }));
+          if (existing) {
+            await db.run(UPDATE('tracker.AlertThresholds').set({ warningAt, criticalAt, admin_ID: admin.ID }).where({ ID: existing.ID }));
+            const updated = await db.run(SELECT.one.from('tracker.AlertThresholds').where({ ID: existing.ID }));
+            upserted.push(updated);
+          } else {
+            const entry = { ID: cds.utils.uuid(), truck_ID: id, admin_ID: admin.ID, metricType, warningAt: warningAt ?? null, criticalAt: criticalAt ?? null, createdAt: nowISO() };
+            await db.run(INSERT.into('tracker.AlertThresholds').entries(entry));
+            upserted.push(await db.run(SELECT.one.from('tracker.AlertThresholds').where({ ID: entry.ID })));
+          }
+        }
+
+        return res.json({ truck_ID: id, thresholds: upserted });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 4: Get alert thresholds for truck
+    app.get('/tracker/trucks/:id/thresholds', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ ID: id }));
+        if (!truck) return res.status(404).json({ error: 'Truck not found' });
+        if (truck.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        const thresholds = await db.run(SELECT.from('tracker.AlertThresholds').where({ truck_ID: id }));
+        return res.json({ truck_ID: id, thresholds: thresholds || [] });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 5: List alerts for admin
+    app.get('/tracker/alerts', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const trucks = await db.run(SELECT.from('tracker.Trucks').where({ admin_ID: admin.ID }).columns('ID','truckNumber'));
+        const truckIds = (trucks || []).map(t => t.ID);
+        const truckMap = {}; (trucks || []).forEach(t => { truckMap[t.ID] = t; });
+
+        const filterTruckId = req.query?.truckId;
+        if (filterTruckId && !truckIds.includes(filterTruckId)) return res.status(403).json({ error: 'Forbidden' });
+
+        const where = { truck_ID: { in: truckIds } };
+        if (filterTruckId) where.truck_ID = filterTruckId;
+        if (!(req.query?.includeRead === 'true' || req.query?.includeRead === true)) {
+          where.isRead = false;
+        }
+
+        const alerts = await db.run(SELECT.from('tracker.AlertEvents').where(where).orderBy('firedAt desc'));
+        const unreadCount = (alerts || []).filter(a => !a.isRead).length;
+        const enriched = (alerts || []).map(a => ({ ...a, truckNumber: truckMap[a.truck_ID]?.truckNumber || null }));
+        return res.json({ unreadCount, alerts: enriched });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 6: Mark single alert as read
+    app.post('/tracker/alerts/:id/read', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const alertId = req.params.id;
+        const alert = await db.run(SELECT.one.from('tracker.AlertEvents').where({ ID: alertId }));
+        if (!alert) return res.status(404).json({ error: 'Alert not found' });
+        const trucks = await db.run(SELECT.from('tracker.Trucks').where({ admin_ID: admin.ID }).columns('ID'));
+        const truckIds = (trucks || []).map(t => t.ID);
+        if (!truckIds.includes(alert.truck_ID)) return res.status(403).json({ error: 'Forbidden' });
+
+        await db.run(UPDATE('tracker.AlertEvents').set({ isRead: true }).where({ ID: alertId }));
+        return res.json({ success: true, alertId });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 7: Mark all alerts as read for admin's trucks
+    app.post('/tracker/alerts/read-all', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const trucks = await db.run(SELECT.from('tracker.Trucks').where({ admin_ID: admin.ID }).columns('ID'));
+        const truckIds = (trucks || []).map(t => t.ID);
+        if (truckIds.length === 0) return res.json({ success: true, markedRead: 0 });
+
+        const toMark = await db.run(SELECT.from('tracker.AlertEvents').where({ truck_ID: { in: truckIds }, isRead: false }).columns('ID'));
+        const count = (toMark || []).length;
+        if (count > 0) {
+          await db.run(UPDATE('tracker.AlertEvents').set({ isRead: true }).where({ truck_ID: { in: truckIds }, isRead: false }));
+        }
+
+        return res.json({ success: true, markedRead: count });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // --- Background alert evaluation engine ---
+    const ALERT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+    const evaluateAlerts = async () => {
+      try {
+        const db = await dbPromise;
+        const thresholds = await db.run(SELECT.from('tracker.AlertThresholds'));
+        const byTruck = new Map();
+        (thresholds || []).forEach(t => {
+          const tid = t.truck_ID || t.TRUCK_ID;
+          if (!tid) return;
+          if (!byTruck.has(tid)) byTruck.set(tid, {});
+          byTruck.get(tid)[t.metricType] = t;
+        });
+
+        let evaluated = 0;
+        let fired = 0;
+
+        const nowMs = Date.now();
+        for (const [truckId, thrMap] of byTruck.entries()) {
+          evaluated += 1;
+          const metrics = await db.run(SELECT.one.from('tracker.VehicleMetrics').where({ truck_ID: truckId }).orderBy('capturedAt desc'));
+          if (!metrics) continue;
+          const capturedAt = metrics.capturedAt || metrics.CAPTUREDAT || null;
+          if (!capturedAt) continue;
+          const capturedMs = new Date(capturedAt).getTime();
+          if (isNaN(capturedMs)) continue;
+          if (nowMs - capturedMs > 30 * 60 * 1000) continue; // older than 30 minutes
+
+          for (const metricType of Object.values(METRIC_TYPES)) {
+            const threshold = thrMap[metricType];
+            if (!threshold) continue;
+            let value = null;
+            if (metricType === METRIC_TYPES.FUEL_LEVEL) value = metrics.fuelLitres ?? metrics.FUELLITRES;
+            else if (metricType === METRIC_TYPES.TYRE_PRESSURE) {
+              const tyres = [metrics.tyreFL, metrics.tyreFR, metrics.tyreRL, metrics.tyreRR].map(v => v == null ? null : Number(v)).filter(v => v != null);
+              value = tyres.length ? Math.min(...tyres) : null;
+            } else if (metricType === METRIC_TYPES.ENGINE_TEMP) value = metrics.engineTempC ?? metrics.ENGINETEMPC;
+
+            if (value == null) continue;
+
+            let severity = null;
+            if (metricType === METRIC_TYPES.FUEL_LEVEL || metricType === METRIC_TYPES.TYRE_PRESSURE) {
+              if (threshold.criticalAt != null && Number(value) <= Number(threshold.criticalAt)) severity = 'CRITICAL';
+              else if (threshold.warningAt != null && Number(value) <= Number(threshold.warningAt)) severity = 'WARNING';
+            } else if (metricType === METRIC_TYPES.ENGINE_TEMP) {
+              if (threshold.criticalAt != null && Number(value) >= Number(threshold.criticalAt)) severity = 'CRITICAL';
+              else if (threshold.warningAt != null && Number(value) >= Number(threshold.warningAt)) severity = 'WARNING';
+            }
+
+            if (!severity) continue;
+
+            // check duplicate unread alert
+            const exists = await db.run(SELECT.one.from('tracker.AlertEvents').where({ truck_ID: truckId, metricType, severity, isRead: false }));
+            if (exists) continue;
+
+            const alertEntry = {
+              ID: cds.utils.uuid(),
+              truck_ID: truckId,
+              trip_ID: metrics.trip_ID || null,
+              metricType,
+              severity,
+              value: Number(value),
+              threshold: severity === 'CRITICAL' ? (threshold.criticalAt ?? null) : (threshold.warningAt ?? null),
+              isRead: false,
+              firedAt: nowISO(),
+              createdAt: nowISO()
+            };
+
+            await db.run(INSERT.into('tracker.AlertEvents').entries(alertEntry));
+            fired += 1;
+          }
+        }
+
+        cds.log('alert-engine').info(`Alert run complete. Evaluated ${evaluated} trucks, fired ${fired} alerts.`);
+      } catch (err) {
+        cds.log('alert-engine').error('Alert evaluation failed:', err.message);
+      }
+    };
+
+    setInterval(evaluateAlerts, ALERT_INTERVAL_MS);
+    setTimeout(evaluateAlerts, 15000);
+
+    // --- Reporting endpoints (per-truck, fleet, export) ---
+    // Load ExcelJS only for report endpoints
+    const ExcelJS = require('exceljs');
+
+    const parseDateRange = (query) => {
+      const from = query.from ? new Date(query.from).toISOString() : null;
+      const to   = query.to   ? new Date(query.to).toISOString()   : null;
+      if (from && isNaN(Date.parse(query.from))) throw new Error('Invalid from date');
+      if (to   && isNaN(Date.parse(query.to)))   throw new Error('Invalid to date');
+      return { from, to };
+    };
+
+    const buildTruckReport = async (db, truckId, from, to) => {
+      // 1. Trips
+      const tripWhere = { truck_ID: truckId };  // note: Trips has driver_ID not truck_ID
+      // Trips are linked via FreightOrders — fetch freight orders for this truck, get trip IDs
+      const freightOrders = await db.run(
+        SELECT.from('tracker.FreightOrders')
+          .where({ truck_ID: truckId })
+          .columns('ID', 'trip_ID', 'status', 'plannedDeparture', 'actualArrival', 'plannedArrival', 'checkpointCount')
+      );
+      const tripIds = freightOrders.map(o => o.trip_ID).filter(Boolean);
+
+      // 2. Trips data
+      let trips = [];
+      if (tripIds.length > 0) {
+        trips = await db.run(
+          SELECT.from('tracker.Trips')
+            .where({ ID: { in: tripIds } })
+            .columns('ID', 'startedAt', 'endedAt', 'status', 'checkpointCount')
+        );
+        if (from) trips = trips.filter(t => t.startedAt >= from);
+        if (to)   trips = trips.filter(t => t.startedAt <= to);
+      }
+
+      const completedTrips = (trips || []).filter(t => t.status === 'COMPLETED');
+
+      // 3. Durations
+      const durations = completedTrips
+        .filter(t => t.startedAt && t.endedAt)
+        .map(t => new Date(t.endedAt).getTime() - new Date(t.startedAt).getTime());
+      const avgTripDurationMs = durations.length
+        ? roundToTwoDecimals(durations.reduce((a, b) => a + b, 0) / durations.length)
+        : 0;
+
+      // 4. VehicleMetrics
+      let metricsWhere = { truck_ID: truckId };
+      let metrics = await db.run(
+        SELECT.from('tracker.VehicleMetrics')
+          .where(metricsWhere)
+          .columns('fuelLitres', 'tyreFL', 'tyreFR', 'tyreRL', 'tyreRR', 'engineTempC', 'odometerKm', 'capturedAt')
+      );
+      if (from) metrics = metrics.filter(m => m.capturedAt >= from);
+      if (to)   metrics = metrics.filter(m => m.capturedAt <= to);
+
+      const fuelReadings = (metrics || []).map(m => m.fuelLitres).filter(v => v != null);
+      const tyreReadings   = metrics.flatMap(m => [m.tyreFL, m.tyreFR, m.tyreRL, m.tyreRR]).filter(v => v != null);
+      const totalFuelLitres = fuelReadings.length ? roundToTwoDecimals(fuelReadings.reduce((a, b) => a + b, 0)) : 0;
+      const avgTyrePressure = tyreReadings.length
+        ? roundToTwoDecimals(tyreReadings.reduce((a, b) => a + b, 0) / tyreReadings.length)
+        : null;
+      const minTyrePressure = tyreReadings.length ? Math.min(...tyreReadings) : null;
+
+      // 5. Odometer delta
+      const odomReadings = metrics.map(m => m.odometerKm).filter(v => v != null).sort((a, b) => a - b);
+      const odometerDeltaKm = odomReadings.length >= 2
+        ? roundToTwoDecimals(odomReadings[odomReadings.length - 1] - odomReadings[0])
+        : null;
+
+      // 6. Checkpoint compliance
+      let checkpointReadings = [];
+      if (freightOrders.length > 0) {
+        const foIds = freightOrders.map(o => o.ID);
+        checkpointReadings = await db.run(
+          SELECT.from('tracker.CheckpointReadings')
+            .where({ freightOrder_ID: { in: foIds } })
+            .columns('freightOrder_ID', 'checkpointNo')
+        );
+      }
+      const totalRequired  = freightOrders.reduce((sum, o) => sum + (o.checkpointCount || 0), 0);
+      const totalSubmitted = checkpointReadings.length;
+      const checkpointCompliancePct = totalRequired > 0
+        ? roundToTwoDecimals((totalSubmitted / totalRequired) * 100)
+        : null;
+
+      // 7. Alerts
+      let alerts = await db.run(
+        SELECT.from('tracker.AlertEvents')
+          .where({ truck_ID: truckId })
+          .columns('severity', 'metricType', 'firedAt', 'isRead')
+      );
+      if (from) alerts = alerts.filter(a => a.firedAt >= from);
+      if (to)   alerts = alerts.filter(a => a.firedAt <= to);
+      const criticalAlerts = alerts.filter(a => a.severity === 'CRITICAL').length;
+      const warningAlerts  = alerts.filter(a => a.severity === 'WARNING').length;
+
+      return {
+        truckId,
+        totalTrips:              trips.length,
+        completedTrips:          completedTrips.length,
+        completionRatePct:       trips.length > 0 ? roundToTwoDecimals((completedTrips.length / trips.length) * 100) : 0,
+        avgTripDurationMs,
+        totalFuelLitres,
+        avgTyrePressure,
+        minTyrePressure,
+        odometerDeltaKm,
+        totalMetricReadings:     metrics.length,
+        checkpointRequired:      totalRequired,
+        checkpointSubmitted:     totalSubmitted,
+        checkpointCompliancePct,
+        criticalAlerts,
+        warningAlerts,
+        totalAlerts:             alerts.length,
+        freightOrderCount:       freightOrders.length
+      };
+    };
+
+    const buildFleetReport = async (db, admin, from, to) => {
+      const trucks = await db.run(SELECT.from('tracker.Trucks').where({ admin_ID: admin.ID, status: { '!=': 'DEACTIVATED' } }).columns('ID','truckNumber','model','registrationNumber','status','assignedDriver_ID'));
+      if (!trucks || trucks.length === 0) return { trucks: [], totals: {}, totalTrucks: 0 };
+
+      const reports = await Promise.all(trucks.map(t => buildTruckReport(db, t.ID, from, to)));
+
+      const assignedDriverIds = Array.from(new Set(trucks.map(t => t.assignedDriver_ID).filter(Boolean)));
+      const drivers = assignedDriverIds.length ? await db.run(SELECT.from('tracker.Drivers').where({ ID: { in: assignedDriverIds } }).columns('ID','name')) : [];
+      const driverMap = {}; (drivers || []).forEach(d => { driverMap[d.ID] = d; });
+
+      const totals = {
+        totalTrips: 0,
+        completedTrips: 0,
+        totalFuelLitres: 0,
+        odometerDeltaKm: 0,
+        criticalAlerts: 0,
+        warningAlerts: 0,
+        checkpointRequired: 0,
+        checkpointSubmitted: 0
+      };
+
+      let completionRates = [];
+
+      reports.forEach(r => {
+        totals.totalTrips += Number(r.totalTrips || 0);
+        totals.completedTrips += Number(r.completedTrips || 0);
+        totals.totalFuelLitres += Number(r.totalFuelLitres || 0);
+        totals.odometerDeltaKm += Number(r.odometerDeltaKm || 0) || 0;
+        totals.criticalAlerts += Number(r.criticalAlerts || 0);
+        totals.warningAlerts += Number(r.warningAlerts || 0);
+        totals.checkpointRequired += Number(r.checkpointRequired || 0);
+        totals.checkpointSubmitted += Number(r.checkpointSubmitted || 0);
+        completionRates.push(Number(r.completionRatePct || 0));
+      });
+
+      const totalsOut = {
+        totalTrips: totals.totalTrips,
+        completedTrips: totals.completedTrips,
+        totalFuelLitres: roundToTwoDecimals(totals.totalFuelLitres),
+        odometerDeltaKm: roundToTwoDecimals(totals.odometerDeltaKm),
+        criticalAlerts: totals.criticalAlerts,
+        warningAlerts: totals.warningAlerts,
+        checkpointRequired: totals.checkpointRequired,
+        checkpointSubmitted: totals.checkpointSubmitted,
+        checkpointCompliancePct: totals.checkpointRequired > 0 ? roundToTwoDecimals((totals.checkpointSubmitted / totals.checkpointRequired) * 100) : null,
+        avgCompletionRatePct: completionRates.length ? roundToTwoDecimals(completionRates.reduce((a,b)=>a+b,0)/completionRates.length) : 0
+      };
+
+      return { trucks, reports, totals: totalsOut, totalTrucks: trucks.length, driverMap };
+    };
+
+    // Endpoint 1: Per-truck report
+    app.get('/tracker/reports/truck/:id', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        const id = req.params.id;
+        const truck = await db.run(SELECT.one.from('tracker.Trucks').where({ ID: id }));
+        if (!truck) return res.status(404).json({ error: 'Truck not found' });
+        if (truck.admin_ID !== admin.ID) return res.status(403).json({ error: 'Forbidden' });
+
+        let from = null, to = null;
+        try {
+          const range = parseDateRange(req.query || {});
+          from = range.from; to = range.to;
+        } catch (err) {
+          return res.status(400).json({ error: err.message });
+        }
+
+        const report = await buildTruckReport(db, id, from, to);
+
+        let assignedDriverName = null;
+        if (truck.assignedDriver_ID) {
+          const drv = await db.run(SELECT.one.from('tracker.Drivers').where({ ID: truck.assignedDriver_ID }).columns('name'));
+          assignedDriverName = drv && drv.name ? drv.name : null;
+        }
+
+        return res.json({
+          generatedAt: nowISO(),
+          dateRange: { from, to },
+          truck: { id: truck.ID, truckNumber: truck.truckNumber, model: truck.model, registrationNumber: truck.registrationNumber, fuelType: truck.fuelType, status: truck.status, assignedDriverName },
+          report
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 2: Fleet report
+    app.get('/tracker/reports/fleet', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        let from = null, to = null;
+        try {
+          const range = parseDateRange(req.query || {});
+          from = range.from; to = range.to;
+        } catch (err) {
+          return res.status(400).json({ error: err.message });
+        }
+
+        const fleet = await buildFleetReport(db, admin, from, to);
+        if (!fleet.trucks || fleet.trucks.length === 0) {
+          return res.json({ generatedAt: nowISO(), dateRange: { from, to }, totalTrucks: 0, trucks: [], totals: {} });
+        }
+
+        const { trucks, reports, totals, driverMap } = fleet;
+
+        const trucksOut = trucks.map((t, i) => ({
+          ...reports[i],
+          truckNumber: t.truckNumber,
+          model: t.model,
+          registrationNumber: t.registrationNumber,
+          status: t.status,
+          assignedDriverName: driverMap[t.assignedDriver_ID] ? driverMap[t.assignedDriver_ID].name : null
+        }));
+
+        return res.json({ generatedAt: nowISO(), dateRange: { from, to }, totalTrucks: trucks.length, totals, trucks: trucksOut });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // Endpoint 3: Fleet export (Excel)
+    app.get('/tracker/reports/fleet/export', requireAdminAuth, async (req, res, next) => {
+      try {
+        const db = await cds.connect.to('db');
+        const admin = await getAdminFromReq(db, req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+
+        let from = null, to = null;
+        try {
+          const range = parseDateRange(req.query || {});
+          from = range.from; to = range.to;
+        } catch (err) {
+          return res.status(400).json({ error: err.message });
+        }
+
+        const fleet = await buildFleetReport(db, admin, from, to);
+        const { trucks, reports, totals, driverMap } = fleet;
+
+        const workbook = new ExcelJS.Workbook();
+        const summarySheet = workbook.addWorksheet('Fleet Summary');
+        summarySheet.columns = [ { width: 30 }, { width: 20 } ];
+        summarySheet.addRow(['Generated At', 'Date From', 'Date To']);
+        summarySheet.addRow([nowISO(), from || '', to || '']);
+        summarySheet.addRow([]);
+        summarySheet.addRow(['Metric', 'Value']);
+        Object.entries(totals).forEach(([k,v]) => {
+          summarySheet.addRow([k, v]);
+        });
+
+        const truckSheet = workbook.addWorksheet('Per Truck Report');
+        truckSheet.views = [{ state: 'frozen', ySplit: 1 }];
+        const header = ['Truck #', 'Model', 'Reg #', 'Driver', 'Status', 'Total Trips', 'Completed', 'Completion %', 'Fuel Litres', 'Odometer km', 'Avg Tyre PSI', 'Min Tyre PSI', 'Checkpoint %', 'Critical Alerts', 'Warning Alerts'];
+        truckSheet.addRow(header);
+        const headerRow = truckSheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'FF1F497D'} };
+
+        for (let i = 0; i < trucks.length; i++) {
+          const t = trucks[i];
+          const r = reports[i];
+          const row = [t.truckNumber, t.model, t.registrationNumber, driverMap[t.assignedDriver_ID] ? driverMap[t.assignedDriver_ID].name : '', t.status, r.totalTrips, r.completedTrips, r.completionRatePct, r.totalFuelLitres, r.odometerDeltaKm, r.avgTyrePressure, r.minTyrePressure, r.checkpointCompliancePct, r.criticalAlerts, r.warningAlerts];
+          const newRow = truckSheet.addRow(row);
+          // apply number formats
+          [8,9,10,11,12].forEach(idx => {
+            const cell = newRow.getCell(idx);
+            cell.numFmt = '0.00';
+          });
+          // conditional fill for Min Tyre PSI (column 12)
+          const minTyre = r.minTyrePressure;
+          if (minTyre != null && Number(minTyre) < 0) {
+            newRow.getCell(12).fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'FFFFCCCC'} };
+          }
+        }
+
+        // set column widths
+        truckSheet.columns.forEach(c => { c.width = 18; });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="fleet-report-${new Date().toISOString().slice(0,10)}.xlsx"`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+      } catch (err) {
+        next(err);
+      }
+    });
+
   });
