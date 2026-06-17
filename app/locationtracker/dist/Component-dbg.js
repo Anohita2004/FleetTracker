@@ -70,6 +70,28 @@ sap.ui.define([
           plannedArrival: null,
           checkpointCount: 0
         },
+        gatePasses: [],
+        gatePassCount: 0,
+        gatePassCounts: {
+          total: 0,
+          out: 0,
+          in: 0,
+          pending: 0
+        },
+        gatePassFilter: {
+          truckId: null,
+          freightOrderId: null
+        },
+        newGatePass: {
+          freightOrder_ID: null,
+          truck_ID: null,
+          driver_ID: null,
+          gateOfficer: "",
+          direction: "OUT",
+          remarks: "",
+          truckDisplay: "",
+          driverDisplay: ""
+        },
         fleetSummary: {
           total: 0,
           active: 0,

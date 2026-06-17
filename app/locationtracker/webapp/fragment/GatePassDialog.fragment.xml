@@ -1,0 +1,78 @@
+<core:FragmentDefinition
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:l="sap.ui.layout"
+  xmlns:f="sap.ui.layout.form">
+  <Dialog
+    id="gatePassDialog"
+    title="Log Gate Pass Entry"
+    contentWidth="480px"
+    draggable="true">
+    <content>
+      <f:SimpleForm
+        editable="true"
+        layout="ResponsiveGridLayout"
+        labelSpanL="4"
+        labelSpanM="4"
+        emptySpanL="0"
+        emptySpanM="0"
+        columnsL="1"
+        columnsM="1"
+        class="sapUiSmallMargin">
+        <f:content>
+          <Label text="Direction *" labelFor="gpDirection" />
+          <SegmentedButton id="gpDirection" selectedKey="{appState>/newGatePass/direction}">
+            <items>
+              <SegmentedButtonItem key="OUT" text="OUT - Truck Leaving" icon="sap-icon://arrow-right" />
+              <SegmentedButtonItem key="IN" text="IN - Truck Returning" icon="sap-icon://arrow-left" />
+            </items>
+          </SegmentedButton>
+
+          <Label text="Freight Order *" labelFor="gpFreightOrder" />
+          <Select
+            id="gpFreightOrder"
+            selectedKey="{appState>/newGatePass/freightOrder_ID}"
+            width="100%"
+            change=".onGatePassOrderChange"
+            items="{appState>/freightOrders}">
+            <core:Item key="{appState>ID}" text="{= ${appState>orderNumber} + ' - ' + ${appState>origin} + ' to ' + ${appState>destination}}" />
+          </Select>
+
+          <Label text="Truck" labelFor="gpTruck" />
+          <Input
+            id="gpTruck"
+            value="{appState>/newGatePass/truckDisplay}"
+            editable="false"
+            placeholder="Auto-filled from freight order" />
+
+          <Label text="Driver" labelFor="gpDriver" />
+          <Input
+            id="gpDriver"
+            value="{appState>/newGatePass/driverDisplay}"
+            editable="false"
+            placeholder="Auto-filled from freight order" />
+
+          <Label text="Gate Officer *" labelFor="gpOfficer" />
+          <Input
+            id="gpOfficer"
+            value="{appState>/newGatePass/gateOfficer}"
+            placeholder="Name of authorising officer" />
+
+          <Label text="Remarks" labelFor="gpRemarks" />
+          <TextArea
+            id="gpRemarks"
+            value="{appState>/newGatePass/remarks}"
+            placeholder="Optional notes..."
+            rows="3"
+            width="100%" />
+        </f:content>
+      </f:SimpleForm>
+    </content>
+    <beginButton>
+      <Button text="Log Pass" type="Emphasized" press=".onCreateGatePass" />
+    </beginButton>
+    <endButton>
+      <Button text="Cancel" press=".onCancelGatePassDialog" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

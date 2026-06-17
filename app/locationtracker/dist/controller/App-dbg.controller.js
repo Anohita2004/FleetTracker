@@ -24,6 +24,7 @@ sap.ui.define([
       this._assignDriverDialog = null;
       this._freightOrderDialog = null;
       this._checkpointsDialog = null;
+      this._gatePassDialog = null;
       this._leafletLoadPending = false;
 
       const mapContainer = this.byId("trackerMapContainer");
@@ -166,6 +167,14 @@ sap.ui.define([
       this.byId("app").to(this.byId("freightOrdersPage"));
     },
 
+    onNavigateToGatePasses: async function () {
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+      await this._loadFreightOrders();
+      await this._loadGatePasses();
+      this.byId("app").to(this.byId("gatePassesPage"));
+    },
+
     onSelectTruck: function (oEvent) {
       const item = oEvent.getParameter("listItem");
       const context = item && item.getBindingContext("appState");
@@ -232,6 +241,227 @@ sap.ui.define([
         model.setProperty("/freightOrderCounts", counts);
       } catch (error) {
         MessageToast.show("Failed to load freight orders: " + (error.message || "Unknown error"));
+      }
+    },
+
+    _loadGatePasses: async function () {
+      try {
+        const model = this.getView().getModel("appState");
+        const filter = model.getProperty("/gatePassFilter") || {};
+        const params = new URLSearchParams();
+        if (filter.truckId) {
+          params.set("truckId", filter.truckId);
+        }
+        if (filter.freightOrderId) {
+          params.set("freightOrderId", filter.freightOrderId);
+        }
+
+        const response = await fetch("/tracker/gate-passes" + (params.toString() ? "?" + params.toString() : ""), {
+          credentials: "include"
+        });
+        if (!response.ok) {
+          throw new Error(await this._extractError(response));
+        }
+
+        const data = await response.json();
+        const rawPasses = data.value || data.passes || [];
+        const trucks = model.getProperty("/trucks") || [];
+        const drivers = model.getProperty("/approvedDrivers") || [];
+        const orders = model.getProperty("/freightOrders") || [];
+        const truckMap = trucks.reduce(function (map, truck) {
+          if (truck.ID) {
+            map[truck.ID] = truck;
+          }
+          return map;
+        }, {});
+        const driverMap = drivers.reduce(function (map, driver) {
+          if (driver.ID) {
+            map[driver.ID] = driver;
+          }
+          return map;
+        }, {});
+        const orderMap = orders.reduce(function (map, order) {
+          if (order.ID) {
+            map[order.ID] = order;
+          }
+          return map;
+        }, {});
+
+        const passes = rawPasses.map(function (pass) {
+          const truckId = pass.truck_ID || pass.TRUCK_ID || pass.truckId || (pass.truck && (pass.truck.ID || pass.truck.id));
+          const driverId = pass.driver_ID || pass.DRIVER_ID || pass.driverId || (pass.driver && (pass.driver.ID || pass.driver.id));
+          const orderId = pass.freightOrder_ID || pass.FREIGHTORDER_ID || pass.freightOrderId || (pass.freightOrder && (pass.freightOrder.ID || pass.freightOrder.id));
+          const truck = truckMap[truckId] || {};
+          const driver = driverMap[driverId] || {};
+          const order = orderMap[orderId] || {};
+          return Object.assign({}, pass, {
+            ID: pass.ID || pass.Id || pass.id,
+            truck_ID: truckId || null,
+            driver_ID: driverId || null,
+            freightOrder_ID: orderId || null,
+            orderNumber: pass.orderNumber || pass.ORDERNUMBER || order.orderNumber || "-",
+            truckNumber: pass.truckNumber || pass.TRUCKNUMBER || truck.truckNumber || "-",
+            driverName: pass.driverName || pass.DRIVERNAME || driver.name || "-"
+          });
+        });
+
+        const counts = {
+          total: passes.length,
+          out: passes.filter(function (pass) { return pass.direction === "OUT"; }).length,
+          in: passes.filter(function (pass) { return pass.direction === "IN"; }).length,
+          pending: passes.filter(function (pass) { return pass.status === "PENDING"; }).length
+        };
+
+        model.setProperty("/gatePasses", passes);
+        model.setProperty("/gatePassCount", passes.length);
+        model.setProperty("/gatePassCounts", counts);
+      } catch (error) {
+        MessageToast.show("Failed to load gate passes: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onGatePassFilterChange: function () {
+      const model = this.getView().getModel("appState");
+      const truckFilter = this.byId("gatePassTruckFilter");
+      const orderFilter = this.byId("gatePassOrderFilter");
+      const truckKey = truckFilter ? truckFilter.getSelectedKey() : "";
+      const orderKey = orderFilter ? orderFilter.getSelectedKey() : "";
+
+      model.setProperty("/gatePassFilter/truckId", truckKey || null);
+      model.setProperty("/gatePassFilter/freightOrderId", orderKey || null);
+      this._loadGatePasses();
+    },
+
+    onClearGatePassFilters: function () {
+      const model = this.getView().getModel("appState");
+      const truckFilter = this.byId("gatePassTruckFilter");
+      const orderFilter = this.byId("gatePassOrderFilter");
+
+      model.setProperty("/gatePassFilter", { truckId: null, freightOrderId: null });
+      if (truckFilter) {
+        truckFilter.setSelectedKey("");
+      }
+      if (orderFilter) {
+        orderFilter.setSelectedKey("");
+      }
+      this._loadGatePasses();
+    },
+
+    onRefreshGatePasses: function () {
+      this._loadGatePasses();
+    },
+
+    onOpenGatePassDialog: async function () {
+      const model = this.getView().getModel("appState");
+      model.setProperty("/newGatePass", {
+        freightOrder_ID: null,
+        truck_ID: null,
+        driver_ID: null,
+        gateOfficer: "",
+        direction: "OUT",
+        remarks: "",
+        truckDisplay: "",
+        driverDisplay: ""
+      });
+
+      if (!(model.getProperty("/freightOrders") || []).length) {
+        await this._loadFreightOrders();
+      }
+
+      if (!this._gatePassDialog) {
+        this._gatePassDialog = await Fragment.load({
+          id: this.getView().getId(),
+          name: "com.locationtracker.locationtracker.fragment.GatePassDialog",
+          controller: this
+        });
+        this.getView().addDependent(this._gatePassDialog);
+      }
+      this._gatePassDialog.open();
+    },
+
+    onCancelGatePassDialog: function () {
+      if (this._gatePassDialog) {
+        this._gatePassDialog.close();
+      }
+    },
+
+    onGatePassOrderChange: function (oEvent) {
+      const selectedItem = oEvent.getParameter("selectedItem");
+      const orderId = selectedItem && selectedItem.getKey();
+      const model = this.getView().getModel("appState");
+      const orders = model.getProperty("/freightOrders") || [];
+      const order = orders.find(function (item) {
+        return item.ID === orderId;
+      });
+
+      if (order) {
+        model.setProperty("/newGatePass/freightOrder_ID", orderId);
+        model.setProperty("/newGatePass/truck_ID", order.truck_ID || null);
+        model.setProperty("/newGatePass/driver_ID", order.driver_ID || null);
+        model.setProperty("/newGatePass/truckDisplay", order.truckNumber || "");
+        model.setProperty("/newGatePass/driverDisplay", order.driverName || "");
+      }
+    },
+
+    onCreateGatePass: async function () {
+      const model = this.getView().getModel("appState");
+      const gatePass = model.getProperty("/newGatePass") || {};
+
+      if (!gatePass.freightOrder_ID) {
+        MessageToast.show("Please select a freight order");
+        return;
+      }
+      if (!String(gatePass.gateOfficer || "").trim()) {
+        MessageToast.show("Gate officer name is required");
+        return;
+      }
+      if (!gatePass.direction) {
+        MessageToast.show("Please select a direction");
+        return;
+      }
+
+      const existing = model.getProperty("/gatePasses") || [];
+      const lastPass = existing
+        .filter(function (pass) {
+          return pass.truck_ID === gatePass.truck_ID;
+        })
+        .sort(function (a, b) {
+          return new Date(b.passedAt || 0) - new Date(a.passedAt || 0);
+        })[0];
+
+      if (lastPass && lastPass.direction === gatePass.direction) {
+        MessageBox.confirm(
+          "The last recorded pass for this truck was also \"" + gatePass.direction + "\". Are you sure?",
+          {
+            title: "Duplicate Direction Warning",
+            onClose: async function (action) {
+              if (action === MessageBox.Action.OK) {
+                await this._submitGatePass(gatePass);
+              }
+            }.bind(this)
+          }
+        );
+        return;
+      }
+
+      await this._submitGatePass(gatePass);
+    },
+
+    _submitGatePass: async function (gatePass) {
+      try {
+        await this._fetchWithCsrf("/tracker/gate-passes", "POST", {
+          freightOrder_ID: gatePass.freightOrder_ID,
+          truck_ID: gatePass.truck_ID,
+          driver_ID: gatePass.driver_ID,
+          gateOfficer: gatePass.gateOfficer,
+          direction: gatePass.direction,
+          remarks: gatePass.remarks
+        });
+        MessageToast.show("Gate pass logged - Truck " + (gatePass.direction === "OUT" ? "departed" : "returned"));
+        this._gatePassDialog.close();
+        this._loadGatePasses();
+      } catch (error) {
+        MessageBox.error("Failed to log gate pass: " + (error.message || "Unknown error"));
       }
     },
 
@@ -1852,4 +2082,3 @@ sap.ui.define([
     }
   });
 });
-
