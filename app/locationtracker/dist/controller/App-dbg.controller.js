@@ -704,6 +704,14 @@ sap.ui.define([
       };
     },
 
+    formatDate: function (sDate) {
+      try {
+        if (!sDate) return "";
+        var d = new Date(sDate);
+        return isNaN(d.getTime()) ? "" : d.toLocaleDateString();
+      } catch (e) { return ""; }
+    },
+
     _normalizeTruck: function (truck) {
       const t = truck || {};
       return {

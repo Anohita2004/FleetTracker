@@ -86,9 +86,11 @@
                         <Text text="{appState>email}" />
                         <Text text="{appState>phone}" />
                         <Text text="{appState>licenseNumber}" />
-                        <Text text="{= new Date(${appState>licenseExpiry}).toLocaleDateString()}" />
+                        <Text text="{path: 'appState>licenseExpiry', formatter: '.formatDate'}" />
                         <Button text="View" press=".onViewDriverDoc">
-                          <customData:CustomData key="driverDocUrl" value="{appState>documentUrl}" />
+                          <customData>
+                            <core:CustomData key="driverDocUrl" value="{appState>documentUrl}" />
+                          </customData>
                         </Button>
                         <HBox>
                           <Button text="Approve" type="Emphasized" press=".onApproveDriver">
