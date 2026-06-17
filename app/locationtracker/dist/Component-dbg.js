@@ -43,6 +43,33 @@ sap.ui.define([
         truckMetricsSummary: {},
         truckThresholds: [],
         truckFreightHistory: [],
+        freightOrders: [],
+        freightOrderCount: 0,
+        freightOrderCounts: {
+          total: 0,
+          planned: 0,
+          dispatched: 0,
+          delivered: 0,
+          cancelled: 0
+        },
+        selectedFreightOrder: null,
+        selectedFreightOrderId: null,
+        freightOrderCheckpoints: {
+          readings: [],
+          submitted: 0,
+          isComplete: false
+        },
+        freightOrderStatusFilter: "ALL",
+        newFreightOrder: {
+          orderNumber: "",
+          truck_ID: null,
+          driver_ID: null,
+          origin: "",
+          destination: "",
+          plannedDeparture: null,
+          plannedArrival: null,
+          checkpointCount: 0
+        },
         fleetSummary: {
           total: 0,
           active: 0,

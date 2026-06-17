@@ -1,0 +1,59 @@
+<core:FragmentDefinition
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Dialog
+    id="checkpointsDialog"
+    title="Checkpoint Readings"
+    contentWidth="700px"
+    contentHeight="480px"
+    draggable="true"
+    resizable="true">
+    <content>
+      <VBox class="sapUiSmallMargin">
+        <HBox justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+          <ObjectStatus
+            title="Order"
+            text="{appState>/selectedFreightOrder/orderNumber}" />
+          <ObjectStatus
+            title="Checkpoints"
+            text="{= ${appState>/freightOrderCheckpoints/submitted} + ' / ' + ${appState>/selectedFreightOrder/checkpointCount}}"
+            state="{= ${appState>/freightOrderCheckpoints/isComplete} ? 'Success' : 'Warning'}" />
+        </HBox>
+        <Table
+          id="checkpointsTable"
+          items="{appState>/freightOrderCheckpoints/readings}"
+          noDataText="No checkpoint readings submitted yet">
+          <columns>
+            <Column width="4rem"><Text text="#" /></Column>
+            <Column><Text text="Captured At" /></Column>
+            <Column><Text text="Fuel (L)" /></Column>
+            <Column><Text text="FL PSI" /></Column>
+            <Column><Text text="FR PSI" /></Column>
+            <Column><Text text="RL PSI" /></Column>
+            <Column><Text text="RR PSI" /></Column>
+            <Column><Text text="Odometer km" /></Column>
+            <Column><Text text="Note" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <ObjectNumber number="{appState>checkpointNo}" />
+                <Text text="{path: 'appState>capturedAt', formatter: '.formatDateTime'}" />
+                <Text text="{appState>fuelLitres}" />
+                <Text text="{appState>tyreFL}" />
+                <Text text="{appState>tyreFR}" />
+                <Text text="{appState>tyreRL}" />
+                <Text text="{appState>tyreRR}" />
+                <Text text="{appState>odometerKm}" />
+                <Text text="{appState>driverNote}" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+    </content>
+    <endButton>
+      <Button text="Close" press=".onCloseCheckpointsDialog" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

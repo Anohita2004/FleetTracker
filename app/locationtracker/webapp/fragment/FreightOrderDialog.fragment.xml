@@ -1,0 +1,87 @@
+<core:FragmentDefinition
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:l="sap.ui.layout"
+  xmlns:f="sap.ui.layout.form">
+  <Dialog
+    id="freightOrderDialog"
+    title="New Freight Order"
+    contentWidth="520px"
+    draggable="true">
+    <content>
+      <f:SimpleForm
+        editable="true"
+        layout="ResponsiveGridLayout"
+        labelSpanL="4"
+        labelSpanM="4"
+        emptySpanL="0"
+        emptySpanM="0"
+        columnsL="1"
+        columnsM="1"
+        class="sapUiSmallMargin">
+        <f:content>
+          <Label text="Order Number *" labelFor="foOrderNumber" />
+          <Input id="foOrderNumber" value="{appState>/newFreightOrder/orderNumber}" placeholder="e.g. FO-2024-001" />
+
+          <Label text="Truck *" labelFor="foTruckSelect" />
+          <Select
+            id="foTruckSelect"
+            selectedKey="{appState>/newFreightOrder/truck_ID}"
+            width="100%"
+            change=".onFreightOrderTruckChange"
+            items="{appState>/trucks}">
+            <core:Item key="{appState>ID}" text="{= ${appState>truckNumber} + ' - ' + ${appState>model}}" />
+          </Select>
+
+          <Label text="Driver *" labelFor="foDriverSelect" />
+          <Select
+            id="foDriverSelect"
+            selectedKey="{appState>/newFreightOrder/driver_ID}"
+            width="100%"
+            items="{appState>/approvedDrivers}">
+            <core:Item key="{appState>ID}" text="{= ${appState>name} + ' - ' + ${appState>phone}}" />
+          </Select>
+
+          <Label text="Origin *" labelFor="foOrigin" />
+          <Input id="foOrigin" value="{appState>/newFreightOrder/origin}" placeholder="Departure location" />
+
+          <Label text="Destination *" labelFor="foDestination" />
+          <Input id="foDestination" value="{appState>/newFreightOrder/destination}" placeholder="Arrival location" />
+
+          <Label text="Planned Departure" labelFor="foPlannedDep" />
+          <DateTimePicker
+            id="foPlannedDep"
+            value="{appState>/newFreightOrder/plannedDeparture}"
+            displayFormat="dd MMM yyyy HH:mm"
+            valueFormat="yyyy-MM-ddTHH:mm:ss" />
+
+          <Label text="Planned Arrival" labelFor="foPlannedArr" />
+          <DateTimePicker
+            id="foPlannedArr"
+            value="{appState>/newFreightOrder/plannedArrival}"
+            displayFormat="dd MMM yyyy HH:mm"
+            valueFormat="yyyy-MM-ddTHH:mm:ss" />
+
+          <Label text="Checkpoints Required" labelFor="foCheckpoints" />
+          <StepInput
+            id="foCheckpoints"
+            value="{appState>/newFreightOrder/checkpointCount}"
+            min="0"
+            max="20"
+            step="1"
+            description="stops where driver must report metrics" />
+        </f:content>
+      </f:SimpleForm>
+    </content>
+    <beginButton>
+      <Button
+        id="foSubmitBtn"
+        text="Create Order"
+        type="Emphasized"
+        press=".onCreateFreightOrder" />
+    </beginButton>
+    <endButton>
+      <Button text="Cancel" press=".onCancelFreightOrderDialog" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

@@ -22,6 +22,8 @@ sap.ui.define([
       this._addDriverDialog = null;
       this._addTruckDialog = null;
       this._assignDriverDialog = null;
+      this._freightOrderDialog = null;
+      this._checkpointsDialog = null;
       this._leafletLoadPending = false;
 
       const mapContainer = this.byId("trackerMapContainer");
@@ -157,6 +159,13 @@ sap.ui.define([
       await this._loadTruckList();
     },
 
+    onNavigateToFreightOrders: async function () {
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+      await this._loadFreightOrders();
+      this.byId("app").to(this.byId("freightOrdersPage"));
+    },
+
     onSelectTruck: function (oEvent) {
       const item = oEvent.getParameter("listItem");
       const context = item && item.getBindingContext("appState");
@@ -167,6 +176,313 @@ sap.ui.define([
       const truck = context.getObject();
       this._viewModel.setProperty("/selectedTruck", truck || {});
       this._viewModel.setProperty("/selectedTruckId", truck && truck.ID);
+    },
+
+    _loadFreightOrders: async function () {
+      try {
+        const model = this.getView().getModel("appState");
+        const status = model.getProperty("/freightOrderStatusFilter");
+        const url = status === "ALL"
+          ? "/tracker/freight-orders"
+          : "/tracker/freight-orders?status=" + encodeURIComponent(status);
+        const response = await fetch(url, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(await this._extractError(response));
+        }
+        const data = await response.json();
+        const rawOrders = data.value || data.orders || [];
+        const trucks = model.getProperty("/trucks") || [];
+        const drivers = model.getProperty("/approvedDrivers") || [];
+        const truckMap = trucks.reduce(function (map, truck) {
+          if (truck.ID) {
+            map[truck.ID] = truck;
+          }
+          return map;
+        }, {});
+        const driverMap = drivers.reduce(function (map, driver) {
+          if (driver.ID) {
+            map[driver.ID] = driver;
+          }
+          return map;
+        }, {});
+        const orders = rawOrders.map(function (order) {
+          const truckId = order.truck_ID || order.TRUCK_ID || order.truckId || (order.truck && (order.truck.ID || order.truck.id));
+          const driverId = order.driver_ID || order.DRIVER_ID || order.driverId || (order.driver && (order.driver.ID || order.driver.id));
+          const truck = truckMap[truckId] || {};
+          const driver = driverMap[driverId] || {};
+          return Object.assign({}, order, {
+            ID: order.ID || order.Id || order.id,
+            truck_ID: truckId || null,
+            driver_ID: driverId || null,
+            truckNumber: order.truckNumber || order.TRUCKNUMBER || truck.truckNumber || "-",
+            driverName: order.driverName || order.DRIVERNAME || driver.name || "-",
+            checkpointCount: order.checkpointCount != null ? order.checkpointCount : order.CHECKPOINTCOUNT || 0
+          });
+        });
+        const counts = {
+          total: orders.length,
+          planned: orders.filter(function (order) { return order.status === "PLANNED"; }).length,
+          dispatched: orders.filter(function (order) { return order.status === "DISPATCHED"; }).length,
+          delivered: orders.filter(function (order) { return order.status === "DELIVERED"; }).length,
+          cancelled: orders.filter(function (order) { return order.status === "CANCELLED"; }).length
+        };
+
+        model.setProperty("/freightOrders", orders);
+        model.setProperty("/freightOrderCount", orders.length);
+        model.setProperty("/freightOrderCounts", counts);
+      } catch (error) {
+        MessageToast.show("Failed to load freight orders: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onFreightStatusFilterChange: function () {
+      this._loadFreightOrders();
+    },
+
+    onRefreshFreightOrders: function () {
+      this._loadFreightOrders();
+    },
+
+    onSelectFreightOrder: function (oEvent) {
+      const item = oEvent.getParameter("listItem");
+      const context = item && item.getBindingContext("appState");
+      if (!context) {
+        return;
+      }
+      const order = context.getObject();
+      this._viewModel.setProperty("/selectedFreightOrder", order || {});
+      this._viewModel.setProperty("/selectedFreightOrderId", order && order.ID);
+    },
+
+    onOpenFreightOrderDialog: async function () {
+      this.getView().getModel("appState").setProperty("/newFreightOrder", {
+        orderNumber: "",
+        truck_ID: null,
+        driver_ID: null,
+        origin: "",
+        destination: "",
+        plannedDeparture: null,
+        plannedArrival: null,
+        checkpointCount: 0
+      });
+      this.getView().getModel("appState").setProperty("/selectedFreightOrderId", null);
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+      await this._ensureFreightOrderDialog();
+      this._setFreightOrderDialogMode("create");
+      this._freightOrderDialog.open();
+    },
+
+    onCancelFreightOrderDialog: function () {
+      if (this._freightOrderDialog) {
+        this._freightOrderDialog.close();
+      }
+      this._setFreightOrderDialogMode("create");
+      this.getView().getModel("appState").setProperty("/selectedFreightOrderId", null);
+    },
+
+    onFreightOrderTruckChange: function (oEvent) {
+      const selectedItem = oEvent.getParameter("selectedItem");
+      const truckId = selectedItem && selectedItem.getKey();
+      const model = this.getView().getModel("appState");
+      model.setProperty("/newFreightOrder/truck_ID", truckId);
+
+      const trucks = model.getProperty("/trucks") || [];
+      const truck = trucks.find(function (item) {
+        return item.ID === truckId;
+      });
+      if (truck && truck.assignedDriver_ID) {
+        model.setProperty("/newFreightOrder/driver_ID", truck.assignedDriver_ID);
+      }
+    },
+
+    onCreateFreightOrder: async function () {
+      const model = this.getView().getModel("appState");
+      const order = model.getProperty("/newFreightOrder") || {};
+
+      if (!String(order.orderNumber || "").trim()) {
+        MessageToast.show("Order number is required");
+        return;
+      }
+      if (!order.truck_ID) {
+        MessageToast.show("Please select a truck");
+        return;
+      }
+      if (!order.driver_ID) {
+        MessageToast.show("Please select a driver");
+        return;
+      }
+      if (!String(order.origin || "").trim()) {
+        MessageToast.show("Origin is required");
+        return;
+      }
+      if (!String(order.destination || "").trim()) {
+        MessageToast.show("Destination is required");
+        return;
+      }
+
+      try {
+        await this._fetchWithCsrf("/tracker/freight-orders", "POST", order);
+        MessageToast.show("Freight order created successfully");
+        this._freightOrderDialog.close();
+        this._setFreightOrderDialogMode("create");
+        this._loadFreightOrders();
+      } catch (error) {
+        MessageBox.error("Failed to create order: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onDispatchFreightOrder: function (oEvent) {
+      const orderId = oEvent.getSource().data("orderId");
+      const model = this.getView().getModel("appState");
+      const orders = model.getProperty("/freightOrders") || [];
+      const order = orders.find(function (item) {
+        return item.ID === orderId;
+      });
+
+      MessageBox.confirm(
+        "Dispatch order " + ((order && order.orderNumber) || "") + "?\n\nThis will create an active trip and the driver will be notified.",
+        {
+          title: "Confirm Dispatch",
+          onClose: async function (action) {
+            if (action !== MessageBox.Action.OK) {
+              return;
+            }
+            try {
+              const result = await this._fetchWithCsrf("/tracker/freight-orders/" + orderId + "/dispatch", "POST");
+              MessageToast.show("Order dispatched. Trip \"" + ((result.trip && result.trip.title) || "created") + "\" is now active.");
+              this._loadFreightOrders();
+            } catch (error) {
+              MessageBox.error("Dispatch failed: " + (error.message || "Unknown error"));
+            }
+          }.bind(this)
+        }
+      );
+    },
+
+    onEditFreightOrder: async function (oEvent) {
+      const orderId = oEvent.getSource().data("orderId");
+      const model = this.getView().getModel("appState");
+      const orders = model.getProperty("/freightOrders") || [];
+      const order = orders.find(function (item) {
+        return item.ID === orderId;
+      });
+      if (!order) {
+        return;
+      }
+
+      model.setProperty("/selectedFreightOrderId", orderId);
+      model.setProperty("/newFreightOrder", {
+        orderNumber: order.orderNumber || "",
+        truck_ID: order.truck_ID || null,
+        driver_ID: order.driver_ID || null,
+        origin: order.origin || "",
+        destination: order.destination || "",
+        plannedDeparture: order.plannedDeparture || null,
+        plannedArrival: order.plannedArrival || null,
+        checkpointCount: order.checkpointCount || 0
+      });
+
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+      await this._ensureFreightOrderDialog();
+      this._setFreightOrderDialogMode("edit");
+      this._freightOrderDialog.open();
+    },
+
+    onSaveFreightOrderEdit: async function () {
+      const model = this.getView().getModel("appState");
+      const orderId = model.getProperty("/selectedFreightOrderId");
+      const updates = model.getProperty("/newFreightOrder");
+
+      try {
+        await this._fetchWithCsrf("/tracker/freight-orders/" + orderId, "PUT", updates);
+        MessageToast.show("Order updated");
+        this._freightOrderDialog.close();
+        this._setFreightOrderDialogMode("create");
+        model.setProperty("/selectedFreightOrderId", null);
+        this._loadFreightOrders();
+      } catch (error) {
+        MessageBox.error("Update failed: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onViewCheckpoints: async function (oEvent) {
+      const orderId = oEvent.getSource().data("orderId");
+      const model = this.getView().getModel("appState");
+      const orders = model.getProperty("/freightOrders") || [];
+      const order = orders.find(function (item) {
+        return item.ID === orderId;
+      });
+      model.setProperty("/selectedFreightOrder", order || {});
+      model.setProperty("/selectedFreightOrderId", orderId);
+
+      try {
+        const response = await fetch("/tracker/freight-orders/" + orderId + "/checkpoints", { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(await this._extractError(response));
+        }
+        const data = await response.json();
+        const readings = data.readings || data.value || [];
+        model.setProperty("/freightOrderCheckpoints", {
+          readings: readings,
+          submitted: readings.length,
+          isComplete: readings.length >= ((order && order.checkpointCount) || 0)
+        });
+      } catch (error) {
+        MessageBox.error("Failed to load checkpoints: " + (error.message || "Unknown error"));
+        return;
+      }
+
+      if (!this._checkpointsDialog) {
+        this._checkpointsDialog = await Fragment.load({
+          id: this.getView().getId(),
+          name: "com.locationtracker.locationtracker.fragment.CheckpointsDialog",
+          controller: this
+        });
+        this.getView().addDependent(this._checkpointsDialog);
+      }
+      this._checkpointsDialog.open();
+    },
+
+    onCloseCheckpointsDialog: function () {
+      if (this._checkpointsDialog) {
+        this._checkpointsDialog.close();
+      }
+    },
+
+    _ensureFreightOrderDialog: async function () {
+      if (!this._freightOrderDialog) {
+        this._freightOrderDialog = await Fragment.load({
+          id: this.getView().getId(),
+          name: "com.locationtracker.locationtracker.fragment.FreightOrderDialog",
+          controller: this
+        });
+        this.getView().addDependent(this._freightOrderDialog);
+      }
+    },
+
+    _setFreightOrderDialogMode: function (mode) {
+      if (!this._freightOrderDialog) {
+        return;
+      }
+      const dialog = this.byId("freightOrderDialog");
+      const submitButton = this.byId("foSubmitBtn");
+      if (!dialog || !submitButton) {
+        return;
+      }
+
+      submitButton.detachPress(this.onCreateFreightOrder, this);
+      submitButton.detachPress(this.onSaveFreightOrderEdit, this);
+      if (mode === "edit") {
+        dialog.setTitle("Edit Freight Order");
+        submitButton.setText("Save Changes");
+        submitButton.attachPress(this.onSaveFreightOrderEdit, this);
+      } else {
+        dialog.setTitle("New Freight Order");
+        submitButton.setText("Create Order");
+        submitButton.attachPress(this.onCreateFreightOrder, this);
+      }
     },
 
 
@@ -984,11 +1300,17 @@ sap.ui.define([
     },
 
     formatDateTime: function (sDate) {
+      if (!sDate) return "-";
       try {
-        if (!sDate) return "";
         var d = new Date(sDate);
-        return isNaN(d.getTime()) ? "" : d.toLocaleString();
-      } catch (e) { return ""; }
+        return isNaN(d.getTime()) ? String(sDate) : d.toLocaleString(undefined, {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      } catch (e) { return String(sDate); }
     },
 
     _normalizeTruck: function (truck) {
@@ -1325,6 +1647,35 @@ sap.ui.define([
       return response.json();
     },
 
+    _fetchWithCsrf: async function (url, method, payload) {
+      await this._ensureCsrfToken();
+      const headers = {
+        "X-CSRF-Token": this._csrfToken || "",
+        "X-Requested-With": "XMLHttpRequest"
+      };
+      if (payload !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(url, {
+        method: method,
+        credentials: "include",
+        headers: headers,
+        body: payload !== undefined ? JSON.stringify(payload) : undefined
+      });
+
+      if (!response.ok) {
+        const error = new Error(await this._extractError(response));
+        error.status = response.status;
+        throw error;
+      }
+
+      if (response.status === 204) {
+        return {};
+      }
+      return response.json();
+    },
+
 
     _getAdminCsrfToken: async function () {
       if (this._adminCsrfToken) {
@@ -1501,3 +1852,4 @@ sap.ui.define([
     }
   });
 });
+

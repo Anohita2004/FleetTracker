@@ -63,6 +63,7 @@
                 <ToolbarSpacer />
                 <Text text="{appState>/adminProfile/name}" />
                 <Button text="Manage Fleet" icon="sap-icon://shipping-status" type="Emphasized" press=".onNavigateToFleetOverview" />
+                <Button text="Freight Orders" icon="sap-icon://shipping-status" press=".onNavigateToFreightOrders" />
                 <Button text="Logout" type="Transparent" press=".onLogoutPress" />
               </Toolbar>
 
@@ -320,6 +321,104 @@
                       <Button icon="sap-icon://cancel" tooltip="Deactivate" press=".onDeactivateTruck" visible="{= ${appState>status} !== 'DEACTIVATED'}">
                         <customData>
                           <core:CustomData key="truckId" value="{appState>ID}" />
+                        </customData>
+                      </Button>
+                    </HBox>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
+        </content>
+      </Page>
+
+      <Page id="freightOrdersPage" title="Freight Orders" showNavButton="true" navButtonPress=".onNavigateBackToDashboard">
+        <subHeader>
+          <OverflowToolbar>
+            <Title text="Freight Orders" />
+            <ToolbarSpacer />
+            <Select
+              id="statusFilterSelect"
+              selectedKey="{appState>/freightOrderStatusFilter}"
+              change=".onFreightStatusFilterChange">
+              <items>
+                <core:Item key="ALL" text="All Orders" />
+                <core:Item key="PLANNED" text="Planned" />
+                <core:Item key="DISPATCHED" text="Dispatched" />
+                <core:Item key="DELIVERED" text="Delivered" />
+                <core:Item key="CANCELLED" text="Cancelled" />
+              </items>
+            </Select>
+            <Button text="+ New Order" type="Emphasized" press=".onOpenFreightOrderDialog" />
+            <Button icon="sap-icon://refresh" press=".onRefreshFreightOrders" />
+          </OverflowToolbar>
+        </subHeader>
+        <content>
+          <VBox class="sectionCard">
+            <HBox wrap="Wrap" class="cardRow kpiRow">
+              <Panel headerText="Total" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/freightOrderCounts/total}" /></content>
+              </Panel>
+              <Panel headerText="Planned" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/freightOrderCounts/planned}" /></content>
+              </Panel>
+              <Panel headerText="Dispatched" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/freightOrderCounts/dispatched}" /></content>
+              </Panel>
+              <Panel headerText="Delivered" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/freightOrderCounts/delivered}" /></content>
+              </Panel>
+            </HBox>
+
+            <Table
+              id="freightOrdersTable"
+              items="{appState>/freightOrders}"
+              mode="SingleSelectMaster"
+              selectionChange=".onSelectFreightOrder"
+              noDataText="No freight orders found">
+              <columns>
+                <Column><Text text="Order #" /></Column>
+                <Column><Text text="Truck" /></Column>
+                <Column><Text text="Driver" /></Column>
+                <Column><Text text="Origin" /></Column>
+                <Column><Text text="Destination" /></Column>
+                <Column><Text text="Planned Departure" /></Column>
+                <Column><Text text="Planned Arrival" /></Column>
+                <Column><Text text="Checkpoints" /></Column>
+                <Column><Text text="Status" /></Column>
+                <Column hAlign="Center"><Text text="Actions" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <cells>
+                    <Text text="{appState>orderNumber}" />
+                    <Text text="{appState>truckNumber}" />
+                    <Text text="{appState>driverName}" />
+                    <Text text="{appState>origin}" />
+                    <Text text="{appState>destination}" />
+                    <Text text="{path: 'appState>plannedDeparture', formatter: '.formatDateTime'}" />
+                    <Text text="{path: 'appState>plannedArrival', formatter: '.formatDateTime'}" />
+                    <HBox>
+                      <Text text="{appState>checkpointCount}" />
+                      <Text text="required" class="sapUiTinyMarginBegin" />
+                    </HBox>
+                    <ObjectStatus
+                      text="{appState>status}"
+                      state="{= ${appState>status} === 'DELIVERED' ? 'Success' : ${appState>status} === 'DISPATCHED' ? 'Warning' : ${appState>status} === 'PLANNED' ? 'None' : ${appState>status} === 'CANCELLED' ? 'Error' : 'None'}" />
+                    <HBox justifyContent="Center">
+                      <Button icon="sap-icon://car-rental" tooltip="Dispatch" type="Accept" press=".onDispatchFreightOrder" visible="{= ${appState>status} === 'PLANNED'}">
+                        <customData>
+                          <core:CustomData key="orderId" value="{appState>ID}" />
+                        </customData>
+                      </Button>
+                      <Button icon="sap-icon://detail-view" tooltip="View Checkpoints" press=".onViewCheckpoints" visible="{= ${appState>status} !== 'PLANNED'}">
+                        <customData>
+                          <core:CustomData key="orderId" value="{appState>ID}" />
+                        </customData>
+                      </Button>
+                      <Button icon="sap-icon://edit" tooltip="Edit" press=".onEditFreightOrder" visible="{= ${appState>status} === 'PLANNED'}">
+                        <customData>
+                          <core:CustomData key="orderId" value="{appState>ID}" />
                         </customData>
                       </Button>
                     </HBox>
