@@ -36,14 +36,44 @@ sap.ui.define([
         pendingDriverCount: 0,
         rejectReason: "",
         selectedPendingDriverId: null,
+        selectedTruck: null,
+        selectedTruckId: null,
+        approvedDrivers: [],
+        truckMetrics: [],
+        truckMetricsSummary: {},
+        truckThresholds: [],
+        truckFreightHistory: [],
+        fleetSummary: {
+          total: 0,
+          active: 0,
+          idle: 0,
+          deactivated: 0
+        },
         trucks: [],
         addTruck: {
-          truckNumber: null,
+          truckNumber: "",
           model: "",
           registrationNumber: "",
-          fuelType: "DIESEL",
+          fuelType: "Diesel",
           status: "IDLE",
           assignedDriver_ID: null
+        },
+        assignDriver: {
+          selectedDriverId: null
+        },
+        thresholds: {
+          FUEL_LEVEL: {
+            warningAt: 20,
+            criticalAt: 10
+          },
+          TYRE_PRESSURE: {
+            warningAt: 30,
+            criticalAt: 26
+          },
+          ENGINE_TEMP: {
+            warningAt: 90,
+            criticalAt: 105
+          }
         },
         tracking: false,
         currentTrip: null,

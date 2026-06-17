@@ -21,6 +21,7 @@ sap.ui.define([
       this._adminCsrfToken = null;
       this._addDriverDialog = null;
       this._addTruckDialog = null;
+      this._assignDriverDialog = null;
       this._leafletLoadPending = false;
 
       const mapContainer = this.byId("trackerMapContainer");
@@ -47,6 +48,9 @@ sap.ui.define([
         }.bind(this)
       });
 
+      this._loadApprovedDrivers();
+      this._loadDriverList();
+      this._loadTruckList();
       this._loadPendingRegistrations();
       this._checkAuthStatus();
     },
@@ -115,6 +119,54 @@ sap.ui.define([
     onGoToLogin: function () {
       this._viewModel.setProperty("/authError", "");
       this._setView("loginPage", null);
+    },
+
+    onNavigateToFleetOverview: async function () {
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+      this.byId("app").to(this.byId("fleetOverviewPage"));
+    },
+
+    onNavigateBackToDashboard: function () {
+      this.byId("app").back();
+    },
+
+    onNavigateToTruckDetail: async function (oEvent) {
+      const truckId = oEvent.getSource().data("truckId");
+      const model = this.getView().getModel("appState");
+      const trucks = model.getProperty("/trucks") || [];
+      const truck = trucks.find(function (item) {
+        return item.ID === truckId;
+      });
+
+      model.setProperty("/selectedTruck", truck || {});
+      model.setProperty("/selectedTruckId", truckId);
+      model.setProperty("/truckMetrics", []);
+      model.setProperty("/truckMetricsSummary", {});
+      model.setProperty("/truckFreightHistory", []);
+      await this._loadTruckThresholds(truckId);
+      this.byId("app").to(this.byId("truckDetailPage"));
+    },
+
+    onNavigateBackToFleet: function () {
+      this.byId("app").back();
+    },
+
+    onRefreshFleetOverview: async function () {
+      await this._loadApprovedDrivers();
+      await this._loadTruckList();
+    },
+
+    onSelectTruck: function (oEvent) {
+      const item = oEvent.getParameter("listItem");
+      const context = item && item.getBindingContext("appState");
+      if (!context) {
+        return;
+      }
+
+      const truck = context.getObject();
+      this._viewModel.setProperty("/selectedTruck", truck || {});
+      this._viewModel.setProperty("/selectedTruckId", truck && truck.ID);
     },
 
 
@@ -195,25 +247,233 @@ sap.ui.define([
       });
     },
 
+    _loadApprovedDrivers: async function () {
+      if (!this._isAdmin()) {
+        return;
+      }
+
+      try {
+        const response = await this._adminGet("/tracker/Drivers?$filter=registrationStatus eq 'APPROVED'&$select=ID,name,phone,vehicleId");
+        const drivers = this._getODataCollection(response).map(function (driver) {
+          return this._normalizeDriver(driver);
+        }.bind(this));
+        this._viewModel.setProperty("/approvedDrivers", drivers);
+      } catch (error) {
+        MessageToast.show("Failed to load drivers: " + (error.message || "Unknown error"));
+      }
+    },
+
     _loadTruckList: async function () {
       if (!this._isAdmin()) return;
       try {
+        await this._loadApprovedDrivers();
         const response = await this._adminGet("/tracker/trucks");
         const raw = this._getODataCollection(response);
         const trucks = raw.map(function (t) {
-          return {
-            ID: t.ID || t.Id || t.id || null,
-            truckNumber: t.truckNumber || t.TRUCKNUMBER || t.vehicle_number || null,
-            model: t.model || t.MODEL || "",
-            registrationNumber: t.registrationNumber || t.REGISTRATION_NUMBER || t.registration_number || "",
-            fuelType: t.fuelType || t.FUEL_TYPE || "",
-            status: t.status || t.STATUS || "",
-            assignedDriver_ID: t.assignedDriver_ID || t.ASSIGNEDDRIVER_ID || (t.assignedDriver && (t.assignedDriver.ID || t.assignedDriver.id)) || null
-          };
+          return this._normalizeTruck(t);
+        }.bind(this));
+        const drivers = this._viewModel.getProperty("/approvedDrivers") || [];
+        const driverMap = drivers.reduce(function (map, driver) {
+          if (driver.ID) {
+            map[driver.ID] = driver.name;
+          }
+          return map;
+        }, {});
+        const enriched = trucks.map(function (truck) {
+          return Object.assign({}, truck, {
+            assignedDriverName: driverMap[truck.assignedDriver_ID] || "-"
+          });
         });
-        this._viewModel.setProperty("/trucks", trucks);
+        this._viewModel.setProperty("/trucks", enriched);
+        this._viewModel.setProperty("/fleetSummary", {
+          total: enriched.length,
+          active: enriched.filter(function (truck) {
+            return truck.status === "ACTIVE" || truck.status === "ON_TRIP";
+          }).length,
+          idle: enriched.filter(function (truck) {
+            return truck.status === "IDLE";
+          }).length,
+          deactivated: enriched.filter(function (truck) {
+            return truck.status === "DEACTIVATED";
+          }).length
+        });
       } catch (error) {
         MessageBox.error(error.message || "Unable to load trucks");
+      }
+    },
+
+    onOpenAssignDriverDialog: async function (oEvent) {
+      const truckId = oEvent.getSource().data("truckId") || this._viewModel.getProperty("/selectedTruckId");
+      const model = this.getView().getModel("appState");
+      const trucks = model.getProperty("/trucks") || [];
+      const truck = trucks.find(function (item) {
+        return item.ID === truckId;
+      });
+
+      model.setProperty("/selectedTruckId", truckId);
+      if (truck) {
+        model.setProperty("/selectedTruck", truck);
+      }
+      model.setProperty("/assignDriver/selectedDriverId", truck && truck.assignedDriver_ID ? truck.assignedDriver_ID : null);
+
+      await this._loadApprovedDrivers();
+      if (!this._assignDriverDialog) {
+        this._assignDriverDialog = await Fragment.load({
+          id: this.getView().getId(),
+          name: "com.locationtracker.locationtracker.fragment.AssignDriverDialog",
+          controller: this
+        });
+        this.getView().addDependent(this._assignDriverDialog);
+      }
+      this._assignDriverDialog.open();
+    },
+
+    onConfirmAssignDriver: async function () {
+      const model = this.getView().getModel("appState");
+      const truckId = model.getProperty("/selectedTruckId");
+      const driverId = model.getProperty("/assignDriver/selectedDriverId");
+
+      if (!driverId) {
+        MessageToast.show("Please select a driver");
+        return;
+      }
+
+      try {
+        await this._adminPost("/tracker/trucks/" + truckId + "/assign", { driverId: driverId });
+        MessageToast.show("Driver assigned successfully");
+        this._assignDriverDialog.close();
+        await this._loadTruckList();
+        const trucks = model.getProperty("/trucks") || [];
+        const updated = trucks.find(function (truck) {
+          return truck.ID === truckId;
+        });
+        if (updated) {
+          model.setProperty("/selectedTruck", updated);
+        }
+      } catch (error) {
+        MessageBox.error("Assignment failed: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onCancelAssignDriver: function () {
+      if (this._assignDriverDialog) {
+        this._assignDriverDialog.close();
+      }
+    },
+
+    onSaveTruckDetails: async function () {
+      const model = this.getView().getModel("appState");
+      const truck = model.getProperty("/selectedTruck") || {};
+      const truckId = model.getProperty("/selectedTruckId");
+
+      try {
+        await this._sendAdminRequest("/tracker/trucks/" + truckId, "PUT", {
+          truckNumber: truck.truckNumber,
+          model: truck.model,
+          registrationNumber: truck.registrationNumber,
+          fuelType: truck.fuelType,
+          status: truck.status
+        });
+        MessageToast.show("Truck details saved");
+        await this._loadTruckList();
+      } catch (error) {
+        MessageBox.error("Save failed: " + (error.message || "Unknown error"));
+      }
+    },
+
+    _loadTruckThresholds: async function (truckId) {
+      if (!truckId) {
+        return;
+      }
+
+      try {
+        const response = await this._adminGet("/tracker/trucks/" + truckId + "/thresholds");
+        const data = response || {};
+        const mapped = {
+          FUEL_LEVEL: { warningAt: 20, criticalAt: 10 },
+          TYRE_PRESSURE: { warningAt: 30, criticalAt: 26 },
+          ENGINE_TEMP: { warningAt: 90, criticalAt: 105 }
+        };
+        (data.thresholds || data.value || []).forEach(function (threshold) {
+          if (mapped[threshold.metricType]) {
+            mapped[threshold.metricType].warningAt = threshold.warningAt;
+            mapped[threshold.metricType].criticalAt = threshold.criticalAt;
+          }
+        });
+        this._viewModel.setProperty("/thresholds", mapped);
+        this._viewModel.setProperty("/truckThresholds", data.thresholds || data.value || []);
+      } catch (error) {
+        MessageToast.show("Could not load thresholds: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onSaveThresholds: async function () {
+      const model = this.getView().getModel("appState");
+      const truckId = model.getProperty("/selectedTruckId");
+      const thresholds = model.getProperty("/thresholds");
+
+      try {
+        await this._adminPost("/tracker/trucks/" + truckId + "/thresholds", thresholds);
+        MessageToast.show("Thresholds saved successfully");
+      } catch (error) {
+        MessageBox.error("Failed to save thresholds: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onLoadTruckMetrics: async function () {
+      const model = this.getView().getModel("appState");
+      const truckId = model.getProperty("/selectedTruckId");
+      const picker = this.byId("metricsDateRange");
+      const from = picker && picker.getDateValue() ? picker.getDateValue().toISOString() : "";
+      const to = picker && picker.getSecondDateValue() ? picker.getSecondDateValue().toISOString() : "";
+      const params = new URLSearchParams({ limit: "100" });
+
+      if (from) {
+        params.set("from", from);
+      }
+      if (to) {
+        params.set("to", to);
+      }
+
+      try {
+        const data = await this._adminGet("/tracker/trucks/" + truckId + "/metrics?" + params.toString());
+        model.setProperty("/truckMetrics", data.readings || data.value || []);
+        model.setProperty("/truckMetricsSummary", data.summary || {});
+      } catch (error) {
+        MessageBox.error("Failed to load metrics: " + (error.message || "Unknown error"));
+      }
+    },
+
+    onDeactivateTruck: function (oEvent) {
+      const truckId = oEvent.getSource().data("truckId");
+      MessageBox.confirm("Deactivate this truck?", {
+        onClose: async function (action) {
+          if (action !== MessageBox.Action.OK) {
+            return;
+          }
+          try {
+            await this._adminPost("/tracker/trucks/" + truckId + "/status", { status: "DEACTIVATED" });
+            MessageToast.show("Truck deactivated");
+            await this._loadTruckList();
+          } catch (error) {
+            MessageBox.error("Deactivation failed: " + (error.message || "Unknown error"));
+          }
+        }.bind(this)
+      });
+    },
+
+    onTruckDetailTabSelect: async function (oEvent) {
+      const key = oEvent.getParameter("selectedKey");
+      if (key !== "freightHistory") {
+        return;
+      }
+
+      const truckId = this.getView().getModel("appState").getProperty("/selectedTruckId");
+      try {
+        const data = await this._adminGet("/tracker/freight-orders?truckId=" + encodeURIComponent(truckId));
+        this.getView().getModel("appState").setProperty("/truckFreightHistory", data.value || data.orders || []);
+      } catch (error) {
+        MessageToast.show("Failed to load freight history");
       }
     },
 
@@ -469,6 +729,10 @@ sap.ui.define([
           email: "dev-admin@example.com"
         });
         this._setView("adminDashboard", "admin");
+        await this._loadApprovedDrivers();
+        await this._loadDriverList();
+        await this._loadTruckList();
+        await this._loadPendingRegistrations();
         return;
       }
 
@@ -512,7 +776,10 @@ sap.ui.define([
           if (adminProfile && adminProfile.isFleetAdmin) {
             this._viewModel.setProperty("/adminProfile", adminProfile);
             this._setView("adminDashboard", "admin");
+            await this._loadApprovedDrivers();
             await this._loadDriverList();
+            await this._loadTruckList();
+            await this._loadPendingRegistrations();
             return;
           }
           if (adminProfile) {
@@ -716,6 +983,14 @@ sap.ui.define([
       } catch (e) { return ""; }
     },
 
+    formatDateTime: function (sDate) {
+      try {
+        if (!sDate) return "";
+        var d = new Date(sDate);
+        return isNaN(d.getTime()) ? "" : d.toLocaleString();
+      } catch (e) { return ""; }
+    },
+
     _normalizeTruck: function (truck) {
       const t = truck || {};
       return {
@@ -725,7 +1000,8 @@ sap.ui.define([
         registrationNumber: t.registrationNumber || t.REGISTRATION_NUMBER || t.registration_number || "",
         fuelType: t.fuelType || t.FUEL_TYPE || "",
         status: t.status || t.STATUS || "",
-        assignedDriver_ID: t.assignedDriver_ID || t.ASSIGNEDDRIVER_ID || (t.assignedDriver && (t.assignedDriver.ID || t.assignedDriver.id)) || null
+        assignedDriver_ID: t.assignedDriver_ID || t.ASSIGNEDDRIVER_ID || (t.assignedDriver && (t.assignedDriver.ID || t.assignedDriver.id)) || null,
+        assignedDriverName: t.assignedDriverName || t.assignedDriver_NAME || (t.assignedDriver && t.assignedDriver.name) || "-"
       };
     },
 
@@ -1015,6 +1291,37 @@ sap.ui.define([
         throw error;
       }
 
+      return response.json();
+    },
+
+    _sendAdminRequest: async function (url, method, payload) {
+      const csrfToken = await this._getAdminCsrfToken();
+      const headers = {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      };
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+      if (payload !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(url, {
+        method: method,
+        headers: headers,
+        body: payload !== undefined ? JSON.stringify(payload) : undefined
+      });
+
+      if (!response.ok) {
+        const error = new Error(await this._extractError(response));
+        error.status = response.status;
+        throw error;
+      }
+
+      if (response.status === 204) {
+        return null;
+      }
       return response.json();
     },
 
