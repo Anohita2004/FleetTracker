@@ -379,7 +379,7 @@
               <IconTabFilter key="metrics" text="Vehicle Metrics">
                 <VBox class="sapUiSmallMargin">
                   <Toolbar>
-                    <DateRangePicker id="metricsDateRange" />
+                    <DateRangeSelection id="metricsDateRange" />
                     <Button text="Load" press=".onLoadTruckMetrics" />
                   </Toolbar>
                   <HBox wrap="Wrap" class="cardRow kpiRow">
@@ -478,4 +478,3 @@
     </pages>
   </App>
 </mvc:View>
-
