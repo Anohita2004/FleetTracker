@@ -32,6 +32,14 @@ sap.ui.define([
           password: ""
         },
         drivers: [],
+        driverSummary: {
+          total: 0,
+          active: 0,
+          onTrip: 0,
+          inactive: 0
+        },
+        selectedDriverId: null,
+        selectedDriverName: null,
         pendingDrivers: [],
         pendingDriverCount: 0,
         rejectReason: "",
@@ -80,8 +88,11 @@ sap.ui.define([
         },
         gatePassFilter: {
           truckId: null,
-          freightOrderId: null
+          freightOrderId: null,
+          direction: ""
         },
+        gatePassTruckFilterItems: [],
+        gatePassOrderFilterItems: [],
         newGatePass: {
           freightOrder_ID: null,
           truck_ID: null,

@@ -68,12 +68,33 @@
                 <Button text="Logout" type="Transparent" press=".onLogoutPress" />
               </Toolbar>
 
+              <HBox wrap="Wrap" class="cardRow kpiRow">
+                <Panel headerText="Total Drivers" class="metricCard kpiCard">
+                  <content><ObjectNumber number="{appState>/driverSummary/total}" unit="drivers" /></content>
+                </Panel>
+                <Panel headerText="Active Drivers" class="metricCard kpiCard">
+                  <content><ObjectNumber number="{appState>/driverSummary/active}" state="Success" /></content>
+                </Panel>
+                <Panel headerText="On Trip" class="metricCard kpiCard">
+                  <content><ObjectNumber number="{appState>/driverSummary/onTrip}" state="Warning" /></content>
+                </Panel>
+                <Panel headerText="Pending Approval" class="metricCard kpiCard">
+                  <content><ObjectNumber number="{appState>/pendingDriverCount}" state="{= ${appState>/pendingDriverCount} > 0 ? 'Error' : 'None'}" /></content>
+                </Panel>
+              </HBox>
+
               <VBox class="sectionCard">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">
                   <Title text="Pending Registrations" level="H3" />
                   <ObjectStatus text="{= ${appState>/pendingDriverCount} > 0 ? ${appState>/pendingDriverCount} + ' pending' : 'None'}" state="{= ${appState>/pendingDriverCount} > 0 ? 'Warning' : 'None'}" />
                 </HBox>
-                <Table items="{appState>/pendingDrivers}" class="sapUiSmallMarginTop" noDataText="No pending registrations">
+                <MessageStrip
+                  visible="{= ${appState>/pendingDriverCount} === 0 }"
+                  text="No pending driver registrations."
+                  type="Success"
+                  showIcon="true"
+                  class="sapUiSmallMarginTop" />
+                <Table visible="{= ${appState>/pendingDriverCount} > 0 }" items="{appState>/pendingDrivers}" class="sapUiSmallMarginTop" noDataText="No pending registrations">
                   <columns>
                     <Column><Text text="Name" /></Column>
                     <Column><Text text="Email" /></Column>
@@ -117,7 +138,7 @@
               <VBox class="sectionCard">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">
                   <Title text="Drivers" level="H3" />
-                  <Text text="Manage the drivers in your fleet." />
+                  <SearchField placeholder="Search name, email or licence…" width="20rem" liveChange=".onDriverSearch" />
                 </HBox>
                 <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false" mode="SingleSelectMaster" selectionChange=".onSelectDriver">
                   <columns>
@@ -189,7 +210,13 @@
               </VBox>
             </VBox>
 
-            <VBox visible="{= ${appState>/sCurrentView} === 'adminDashboard' || ${appState>/sCurrentView} === 'driverDashboard' }">
+            <VBox visible="{= ${appState>/sCurrentView} === 'driverDashboard' || (${appState>/sCurrentView} === 'adminDashboard' &amp;&amp; !!${appState>/selectedDriverId}) }">
+              <MessageStrip
+                visible="{= ${appState>/sCurrentView} === 'adminDashboard' }"
+                text="{= 'Viewing live data for: ' + (${appState>/selectedDriverName} || '') }"
+                type="Information"
+                showIcon="true"
+                class="sapUiSmallMarginBottom" />
               <HBox wrap="Wrap" class="cardRow kpiRow">
                 <Panel headerText="Current Trip" class="metricCard kpiCard">
                   <content>
@@ -272,19 +299,20 @@
               <Button text="Add Truck" icon="sap-icon://add" type="Emphasized" press=".onOpenAddTruckDialog" />
               <Button text="Refresh" icon="sap-icon://refresh" press=".onRefreshFleetOverview" />
               <ToolbarSpacer />
+              <SearchField placeholder="Search truck #, model or registration…" width="20rem" liveChange=".onTruckSearch" />
             </Toolbar>
             <HBox wrap="Wrap" class="cardRow kpiRow">
               <Panel headerText="Total Trucks" class="metricCard kpiCard">
                 <content><ObjectNumber number="{appState>/fleetSummary/total}" unit="trucks" /></content>
               </Panel>
               <Panel headerText="Active" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/active}" /></content>
+                <content><ObjectNumber number="{appState>/fleetSummary/active}" state="Success" /></content>
               </Panel>
               <Panel headerText="Idle" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/idle}" /></content>
+                <content><ObjectNumber number="{appState>/fleetSummary/idle}" state="Warning" /></content>
               </Panel>
               <Panel headerText="Deactivated" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/deactivated}" /></content>
+                <content><ObjectNumber number="{appState>/fleetSummary/deactivated}" state="Error" /></content>
               </Panel>
             </HBox>
             <Table id="fleetTable" items="{appState>/trucks}" mode="SingleSelectMaster" selectionChange=".onSelectTruck">
@@ -361,13 +389,16 @@
                 <content><ObjectNumber number="{appState>/freightOrderCounts/total}" /></content>
               </Panel>
               <Panel headerText="Planned" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/planned}" /></content>
+                <content><ObjectNumber number="{appState>/freightOrderCounts/planned}" state="None" /></content>
               </Panel>
               <Panel headerText="Dispatched" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/dispatched}" /></content>
+                <content><ObjectNumber number="{appState>/freightOrderCounts/dispatched}" state="Warning" /></content>
               </Panel>
               <Panel headerText="Delivered" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/delivered}" /></content>
+                <content><ObjectNumber number="{appState>/freightOrderCounts/delivered}" state="Success" /></content>
+              </Panel>
+              <Panel headerText="Cancelled" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/freightOrderCounts/cancelled}" state="{= ${appState>/freightOrderCounts/cancelled} > 0 ? 'Error' : 'None'}" /></content>
               </Panel>
             </HBox>
 
@@ -441,7 +472,7 @@
               selectedKey="{appState>/gatePassFilter/truckId}"
               change=".onGatePassFilterChange"
               forceSelection="false"
-              items="{appState>/trucks}">
+              items="{appState>/gatePassTruckFilterItems}">
               <items>
                 <core:Item key="{appState>ID}" text="{appState>truckNumber}" />
               </items>
@@ -451,9 +482,19 @@
               selectedKey="{appState>/gatePassFilter/freightOrderId}"
               change=".onGatePassFilterChange"
               forceSelection="false"
-              items="{appState>/freightOrders}">
+              items="{appState>/gatePassOrderFilterItems}">
               <items>
                 <core:Item key="{appState>ID}" text="{appState>orderNumber}" />
+              </items>
+            </Select>
+            <Select
+              id="gatePassDirectionFilter"
+              selectedKey="{appState>/gatePassFilter/direction}"
+              change=".onGatePassFilterChange">
+              <items>
+                <core:Item key="" text="All Directions" />
+                <core:Item key="OUT" text="OUT — Departing" />
+                <core:Item key="INN" text="IN — Returning" />
               </items>
             </Select>
             <Button text="Clear Filters" press=".onClearGatePassFilters" />
@@ -473,8 +514,8 @@
               <Panel headerText="Trucks IN" class="metricCard kpiCard">
                 <content><ObjectNumber number="{appState>/gatePassCounts/in}" state="Success" /></content>
               </Panel>
-              <Panel headerText="Pending" class="metricCard kpiCard" visible="{= ${appState>/gatePassCounts/pending} > 0 }">
-                <content><ObjectNumber number="{appState>/gatePassCounts/pending}" state="Error" /></content>
+              <Panel headerText="Pending" class="metricCard kpiCard">
+                <content><ObjectNumber number="{appState>/gatePassCounts/pending}" state="{= ${appState>/gatePassCounts/pending} > 0 ? 'Error' : 'None'}" /></content>
               </Panel>
             </HBox>
 
