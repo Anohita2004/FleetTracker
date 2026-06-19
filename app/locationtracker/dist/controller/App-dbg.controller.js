@@ -17,6 +17,8 @@ sap.ui.define([
       this._marker = null;
       this._points = [];
       this._clientUpdateLatencyMs = [];
+      this._allDrivers = null;
+      this._allTrucks = null;
       this._viewModel = this.getOwnerComponent().getModel("appState");
       this._adminCsrfToken = null;
       this._addDriverDialog = null;
@@ -239,6 +241,8 @@ sap.ui.define([
         model.setProperty("/freightOrders", orders);
         model.setProperty("/freightOrderCount", orders.length);
         model.setProperty("/freightOrderCounts", counts);
+        model.setProperty("/gatePassOrderFilterItems",
+          [{ ID: "", orderNumber: "All Orders" }].concat(orders));
       } catch (error) {
         MessageToast.show("Failed to load freight orders: " + (error.message || "Unknown error"));
       }
@@ -305,15 +309,20 @@ sap.ui.define([
           });
         });
 
+        const direction = (filter.direction || "");
+        const visiblePasses = direction ? passes.filter(function (pass) {
+          return pass.direction === direction;
+        }) : passes;
+
         const counts = {
           total: passes.length,
           out: passes.filter(function (pass) { return pass.direction === "OUT"; }).length,
-          in: passes.filter(function (pass) { return pass.direction === "IN"; }).length,
+          in: passes.filter(function (pass) { return pass.direction === "INN"; }).length,
           pending: passes.filter(function (pass) { return pass.status === "PENDING"; }).length
         };
 
-        model.setProperty("/gatePasses", passes);
-        model.setProperty("/gatePassCount", passes.length);
+        model.setProperty("/gatePasses", visiblePasses);
+        model.setProperty("/gatePassCount", visiblePasses.length);
         model.setProperty("/gatePassCounts", counts);
       } catch (error) {
         MessageToast.show("Failed to load gate passes: " + (error.message || "Unknown error"));
@@ -324,11 +333,14 @@ sap.ui.define([
       const model = this.getView().getModel("appState");
       const truckFilter = this.byId("gatePassTruckFilter");
       const orderFilter = this.byId("gatePassOrderFilter");
+      const directionFilter = this.byId("gatePassDirectionFilter");
       const truckKey = truckFilter ? truckFilter.getSelectedKey() : "";
       const orderKey = orderFilter ? orderFilter.getSelectedKey() : "";
+      const directionKey = directionFilter ? directionFilter.getSelectedKey() : "";
 
       model.setProperty("/gatePassFilter/truckId", truckKey || null);
       model.setProperty("/gatePassFilter/freightOrderId", orderKey || null);
+      model.setProperty("/gatePassFilter/direction", directionKey || "");
       this._loadGatePasses();
     },
 
@@ -336,14 +348,12 @@ sap.ui.define([
       const model = this.getView().getModel("appState");
       const truckFilter = this.byId("gatePassTruckFilter");
       const orderFilter = this.byId("gatePassOrderFilter");
+      const directionFilter = this.byId("gatePassDirectionFilter");
 
-      model.setProperty("/gatePassFilter", { truckId: null, freightOrderId: null });
-      if (truckFilter) {
-        truckFilter.setSelectedKey("");
-      }
-      if (orderFilter) {
-        orderFilter.setSelectedKey("");
-      }
+      model.setProperty("/gatePassFilter", { truckId: null, freightOrderId: null, direction: "" });
+      if (truckFilter) { truckFilter.setSelectedKey(""); }
+      if (orderFilter) { orderFilter.setSelectedKey(""); }
+      if (directionFilter) { directionFilter.setSelectedKey(""); }
       this._loadGatePasses();
     },
 
@@ -830,7 +840,10 @@ sap.ui.define([
             assignedDriverName: driverMap[truck.assignedDriver_ID] || "-"
           });
         });
+        this._allTrucks = enriched;
         this._viewModel.setProperty("/trucks", enriched);
+        this._viewModel.setProperty("/gatePassTruckFilterItems",
+          [{ ID: "", truckNumber: "All Trucks" }].concat(enriched));
         this._viewModel.setProperty("/fleetSummary", {
           total: enriched.length,
           active: enriched.filter(function (truck) {
@@ -1256,6 +1269,28 @@ sap.ui.define([
       }
     },
 
+    onTruckSearch: function (oEvent) {
+      var query = (oEvent.getParameter("newValue") || "").toLowerCase().trim();
+      var source = this._allTrucks || [];
+      var filtered = !query ? source : source.filter(function (t) {
+        return String(t.truckNumber || "").toLowerCase().indexOf(query) !== -1 ||
+               (t.model || "").toLowerCase().indexOf(query) !== -1 ||
+               (t.registrationNumber || "").toLowerCase().indexOf(query) !== -1;
+      });
+      this._viewModel.setProperty("/trucks", filtered);
+    },
+
+    onDriverSearch: function (oEvent) {
+      var query = (oEvent.getParameter("newValue") || "").toLowerCase().trim();
+      var source = this._allDrivers || [];
+      var filtered = !query ? source : source.filter(function (d) {
+        return (d.name || "").toLowerCase().indexOf(query) !== -1 ||
+               (d.email || "").toLowerCase().indexOf(query) !== -1 ||
+               (d.licenseNumber || "").toLowerCase().indexOf(query) !== -1;
+      });
+      this._viewModel.setProperty("/drivers", filtered);
+    },
+
     _checkAuthStatus: async function () {
       this._setView("loading", null);
       this._viewModel.setProperty("/authError", "");
@@ -1356,7 +1391,14 @@ sap.ui.define([
         const drivers = rawDrivers.map(function (driver) {
           return this._normalizeDriver(driver);
         }.bind(this));
+        this._allDrivers = drivers;
         this._viewModel.setProperty("/drivers", drivers);
+        this._viewModel.setProperty("/driverSummary", {
+          total: drivers.length,
+          active: drivers.filter(function (d) { return d.isActive; }).length,
+          onTrip: drivers.filter(function (d) { return d.activityStatus === "On Trip"; }).length,
+          inactive: drivers.filter(function (d) { return !d.isActive; }).length
+        });
       } catch (error) {
         MessageBox.error(error.message || "Unable to load drivers");
       }
