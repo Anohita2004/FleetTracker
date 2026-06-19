@@ -1,162 +1,98 @@
-/* Enter your custom styles here */
-.trackerPage {
-  gap: 1.25rem;
-  padding: 1.25rem;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  box-sizing: border-box;
+/* Theme variables */
+:root{
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f4;
+  --bg-tertiary: #f0efed;
+  --bg-info: #e6f1fb;
+  --text-primary: #1f2d3d;
+  --text-secondary: #5f6b78;
+  --muted: #8a97a6;
+  --accent: #0a6ed1;
+  --success: #3b6d11;
+  --warn: #854f0b;
+  --danger: #a32d2d;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
-.stateShell {
-  min-height: 60vh;
-}
-
-.centerCard {
-  background: #a74d4d;
-  border: 1px solid #d9e7f7;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 0.75rem 1.5rem rgba(31, 65, 107, 0.08);
-  max-width: 520px;
-  margin: 4rem auto 0;
-  gap: 0.75rem;
-}
-
-.heroSection {
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #f5f9ff 0%, #e9f6ff 40%, #edf8f2 100%);
-  border-radius: 1.1rem;
-  border: 1px solid #dcecf9;
-  box-shadow: 0 0.5rem 1.25rem rgba(21, 93, 166, 0.09);
-}
-
-.headerBar {
-  border-radius: 0.9rem;
-  background: #0a6ed1;
-  color: #ffffff;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 0.5rem 1rem rgba(8, 55, 104, 0.2);
-}
-
-.headerBar .sapMTitle,
-.headerBar .sapMText,
-.headerBar .sapMBtnInner {
-  color: #ffffff;
-}
-
-.sectionCard {
-  background: #ffffff;
-  border-radius: 1rem;
-  border: 1px solid #d9e7f7;
-  padding: 1.5rem;
-  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
-  gap: 0.75rem;
-}
-
-.heroRow {
-  gap: 1rem;
-}
-
-.heroText {
-  gap: 0.4rem;
-}
-
-.heroSubtitle {
-  color: #3f5161;
-}
-
-.statusStrip {
-  gap: 1.5rem;
-  padding-top: 0.25rem;
-}
-
-.buttonCluster {
-  gap: 0.75rem;
-}
-
-.cardRow {
-  gap: 1rem;
-  width: 100%;
-}
-
-.metricCard {
-  min-width: 17rem;
-  flex: 1 1 18rem;
-  border-radius: 1rem;
-}
-
-.kpiCard {
-  border: 1px solid #d9e7f7;
-  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
-}
-
-.kpiIcon {
-  color: #0a6ed1;
-  font-size: 1.2rem;
-}
-
-.metricContent {
-  gap: 0.8rem;
-  padding: 1rem;
-}
-
-.metricColumn {
-  flex: 1 1 20rem;
-}
-
-.mapPanel {
-  border: 1px solid #d9e7f7;
-  border-radius: 1rem;
-  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
-  overflow: hidden;
-}
-
-.metricsPanel {
-  border: 1px solid #e0eaf4;
-  border-radius: 1rem;
-}
-
-.mapShell {
-  position: relative;
-  border-radius: 1rem;
-  overflow: hidden;
-  border: 1px solid #d9e7f7;
-  width: 100%;
-  min-height: 28rem;
-  background: #f5f9ff;
-}
-
-.trackerMap {
-  width: 100%;
-  height: 100%;
-  min-height: 28rem;
-  display: block;
-}
-
-.fabButton {
-  position: fixed;
-  right: 2rem;
-  bottom: 2rem;
-  z-index: 1000;
-  border-radius: 50%;
-  width: 3.25rem;
-  height: 3.25rem;
-  box-shadow: 0 0.75rem 1.5rem rgba(15, 65, 114, 0.3);
-}
-
-@media (max-width: 960px) {
-  .trackerPage {
-    padding: 1rem;
-  }
-
-  .heroSection {
-    padding: 1rem;
-  }
-
-  .fabButton {
-    right: 1.25rem;
-    bottom: 1.25rem;
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg-primary: #171717;
+    --bg-secondary: #202021;
+    --bg-tertiary: #141413;
+    --bg-info: #042c53;
+    --text-primary: #eef1f4;
+    --text-secondary: #b4b2a9;
   }
 }
+
+/* Page shell */
+body{font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg-tertiary); color: var(--text-primary); -webkit-font-smoothing:antialiased}
+.trackerPage{gap:1.25rem;padding:1.25rem;width:100%;max-width:1100px;margin:0 auto;box-sizing:border-box}
+
+/* Header / nav (applies to SAP toolbar via headerBar class) */
+.headerBar{display:flex;align-items:center;gap:12px;background:var(--bg-primary);border-radius:10px;padding:10px 14px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 6px 18px rgba(10,40,80,0.04)}
+.headerBar .sapMTitle{font-size:16px;font-weight:600;color:var(--text-primary)}
+.headerBar .sapMText{color:var(--text-secondary)}
+.headerBar .sapMBtn{border-radius:8px}
+
+/* Content layout */
+.content{padding:0;margin:0}
+
+/* KPI row (supports both class names used in views) */
+.kpi-row, .kpiRow, .cardRow.kpiRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi-card, .metricCard, .kpiCard{background:var(--bg-primary);border:0.5px solid rgba(0,0,0,0.06);border-radius:var(--radius-lg);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.kpi-label{font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+.kpi-value{font-size:22px;font-weight:600;color:var(--text-primary)}
+.kpi-value-sm{font-size:15px;font-weight:600}
+.kpi-sub{font-size:11px;color:var(--muted)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-success{background:rgba(59,109,17,0.08);color:var(--success)}
+.badge-warn{background:rgba(133,79,11,0.06);color:var(--warn)}
+.badge-error{background:rgba(163,45,45,0.06);color:var(--danger)}
+.badge-info{background:var(--bg-info);color:var(--accent)}
+
+/* Sections */
+.section, .sectionCard{background:var(--bg-primary);border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid rgba(0,0,0,0.06)}
+.section-header{padding:12px 14px;border-bottom:0.5px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between}
+.section-title{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.section-action{background:transparent;border:0.5px solid rgba(0,0,0,0.08);padding:6px 10px;border-radius:var(--radius-md);font-size:13px;color:var(--text-secondary)}
+.section-action:hover{background:var(--bg-secondary)}
+.metric-badge{font-size:12px;color:var(--text-secondary);padding:6px 10px;background:var(--bg-secondary);border-radius:20px;font-weight:600}
+
+/* Pending banner */
+.pending-notice{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,244,224,0.9);border-bottom:0.5px solid rgba(0,0,0,0.04)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse}
+thead th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;text-align:left;border-bottom:0.5px solid rgba(0,0,0,0.06);white-space:nowrap}
+tbody td{font-size:13px;color:var(--text-primary);padding:12px 14px;border-bottom:0.5px solid rgba(0,0,0,0.04);vertical-align:middle}
+tbody tr:hover td{background:var(--bg-secondary)}
+
+/* Driver info cell */
+.driver-info{display:flex;align-items:center;gap:12px}
+.driver-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.driver-name{font-size:13px;font-weight:600}
+.driver-email{font-size:11px;color:var(--muted)}
+
+/* Action buttons */
+.action-group{display:flex;align-items:center;gap:6px}
+.icon-btn{background:transparent;border:none;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary)}
+.icon-btn:hover{background:var(--bg-secondary);color:var(--text-primary)}
+.approve-btn{background:transparent;border:0.5px solid rgba(99,153,34,0.16);color:var(--success);padding:6px 10px;border-radius:8px;font-size:13px}
+.reject-btn{background:transparent;border:0.5px solid rgba(226,75,74,0.12);color:var(--danger);padding:6px 10px;border-radius:8px;font-size:13px}
+.view-doc-btn{background:transparent;border:0.5px solid rgba(0,0,0,0.06);color:var(--text-secondary);padding:6px 10px;border-radius:8px;font-size:13px}
+
+/* Map tweaks */
+.mapShell{min-height:32rem;padding:8px;border-radius:12px;background:linear-gradient(180deg,#fbfeff 0%,#eef7ff 100%);border:0.5px solid rgba(0,0,0,0.04)}
+.mapShell .leaflet-container{width:100% !important;height:100% !important;border-radius:10px}
+
+/* Small interactions */
+.sectionCard,.metricCard{transition:transform 180ms ease,box-shadow 180ms ease}
+.sectionCard:hover,.metricCard:hover{transform:translateY(-6px);box-shadow:0 14px 32px rgba(20,40,80,0.06)}
+
+/* Responsive */
+@media (max-width:960px){.kpi-row{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}.trackerPage{padding:12px}.mapShell{min-height:22rem}}
+
