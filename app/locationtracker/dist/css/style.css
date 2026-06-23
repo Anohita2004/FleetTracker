@@ -13,7 +13,7 @@
 }
 
 .centerCard {
-  background: #a74d4d;
+  background: #ffffff;
   border: 1px solid #d9e7f7;
   border-radius: 1rem;
   padding: 2rem;
@@ -34,10 +34,10 @@
 
 .headerBar {
   border-radius: 0.9rem;
-  background: #0a6ed1;
+  background: linear-gradient(90deg, #0a6ed1 0%, #074ea6 100%);
   color: #ffffff;
   padding: 0.75rem 1rem;
-  box-shadow: 0 0.5rem 1rem rgba(8, 55, 104, 0.2);
+  box-shadow: 0 0.5rem 1rem rgba(8, 55, 104, 0.25);
 }
 
 .headerBar .sapMTitle,
@@ -51,7 +51,7 @@
   border-radius: 1rem;
   border: 1px solid #d9e7f7;
   padding: 1.5rem;
-  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
+  box-shadow: 0 4px 20px rgba(10, 110, 209, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
   gap: 0.75rem;
 }
 
@@ -88,10 +88,93 @@
 }
 
 .kpiCard {
+  background: #ffffff;
   border: 1px solid #d9e7f7;
-  box-shadow: 0 0.5rem 1rem rgba(59, 106, 152, 0.08);
+  box-shadow: 0 4px 16px rgba(10, 110, 209, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
+/* ── KPI card color accent borders ──────────────────────────── */
+.kpiCardBlue   { border-left: 5px solid #0a6ed1 !important; }
+.kpiCardGreen  { border-left: 5px solid #107e3e !important; }
+.kpiCardOrange { border-left: 5px solid #e9730c !important; }
+.kpiCardRed    { border-left: 5px solid #bb0000 !important; }
+.kpiCardNeutral { border-left: 5px solid #5b738b !important; }
+
+/* ── KPI card internal layout ──────────────────────────────── */
+.kpiCardContent {
+  padding: 1rem 1.25rem;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.kpiCardHeader {
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.kpiCardLabel {
+  font-size: 0.73rem !important;
+  font-weight: 600 !important;
+  color: #6b7c93 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpiCardIcon { font-size: 0.9rem !important; }
+
+.kpiIconBlue   { color: #0a6ed1 !important; }
+.kpiIconGreen  { color: #107e3e !important; }
+.kpiIconOrange { color: #e9730c !important; }
+.kpiIconRed    { color: #bb0000 !important; }
+.kpiIconNeutral { color: #5b738b !important; }
+
+/* ── KPI big number ─────────────────────────────────────────── */
+.kpiCardBigNumber {
+  font-size: 2.2rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  color: #1a2332 !important;
+}
+
+.kpiNumberGreen  { color: #107e3e !important; }
+.kpiNumberOrange { color: #e9730c !important; }
+.kpiNumberRed    { color: #bb0000 !important; }
+.kpiNumberBlue   { color: #0a6ed1 !important; }
+
+.kpiCardUnit {
+  font-size: 0.78rem !important;
+  color: #8c9aaa !important;
+  margin-left: 0.4rem;
+  padding-bottom: 0.2rem;
+}
+
+/* ── Driver avatar circle ───────────────────────────────────── */
+.driverAvatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a6ed1 0%, #1a88f0 100%);
+  margin-right: 0.65rem;
+}
+
+.driverAvatarText {
+  color: #ffffff !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  line-height: 2.25rem !important;
+  width: 100%;
+}
+
+/* ── Table row hover ────────────────────────────────────────── */
+.sapMListTbl tbody .sapMLIB:hover {
+  background: #f0f7ff !important;
+  cursor: pointer;
+}
+
+/* ── Legacy kpiIcon (driver/map cards) ──────────────────────── */
 .kpiIcon {
   color: #0a6ed1;
   font-size: 1.2rem;
@@ -118,23 +201,6 @@
   border-radius: 1rem;
 }
 
-.mapShell {
-  position: relative;
-  border-radius: 1rem;
-  overflow: hidden;
-  border: 1px solid #d9e7f7;
-  width: 100%;
-  min-height: 28rem;
-  background: #f5f9ff;
-}
-
-.trackerMap {
-  width: 100%;
-  height: 100%;
-  min-height: 28rem;
-  display: block;
-}
-
 .fabButton {
   position: fixed;
   right: 2rem;
@@ -158,5 +224,317 @@
   .fabButton {
     right: 1.25rem;
     bottom: 1.25rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN DASHBOARD — dark sidebar layout
+   Tokens: sidebar #14233D · hover #22344F · selected #274064
+           primary #185FA5 · page bg #F4F6FA
+   Cards:  white · 0.5px solid #E0E0E0 · 12px radius · 16px pad
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Outer shell — NO min-height so it shrinks to content ───── */
+.adminShell {
+  width: 100%;
+  background: #F4F6FA;
+  align-items: stretch;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.adminSidebar {
+  width: 15rem;
+  min-width: 15rem;
+  background: #14233D;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.adminBrand {
+  padding: 1.25rem 1rem;
+  gap: 0.625rem;
+  border-bottom: 1px solid #22344F;
+  flex-shrink: 0;
+}
+
+/* Brand icon — white */
+.adminBrandIcon {
+  color: #ffffff !important;
+  font-size: 1.25rem !important;
+}
+
+/* Brand title — sap.m.Title puts custom class ON the heading element,
+   NOT on a wrapper, so use .adminBrandTitle directly (not descendant) */
+.adminBrandTitle,
+.adminBrandTitle.sapMTitle,
+.adminBrandTitle .sapMTitleInner {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+}
+
+/* Flex spacer pushes bottom items down */
+.adminSideGrow {
+  flex: 1 1 auto;
+  min-height: 1rem;
+}
+
+/* ── NavigationList dark overrides
+   Anchor on .adminSidebar (reliable) rather than the rendered
+   sap.tnt class combination, which varies by SAPUI5 version.  ── */
+
+/* Nav list container */
+.adminSidebar .sapTntNavLI {
+  background: #14233D !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100%;
+  padding: 0.25rem 0 !important;
+}
+
+/* Each item and ALL its descendants — transparent by default */
+.adminSidebar .sapTntNavLIItem,
+.adminSidebar .sapTntNavLIItem > *,
+.adminSidebar .sapTntNavLIItem a,
+.adminSidebar .sapTntNavLIItem .sapTntNavLIItemLink {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: #9FB0C6 !important;
+}
+
+.adminSidebar .sapTntNavLIItem {
+  border-radius: 6px !important;
+  margin: 2px 8px !important;
+}
+
+/* Icons */
+.adminSidebar .sapTntNavLIItem .sapUiIcon,
+.adminSidebar .sapTntNavLIItem .sapTntNavLIItemIcon {
+  color: #9FB0C6 !important;
+}
+
+/* Text */
+.adminSidebar .sapTntNavLIItem .sapTntNavLIText,
+.adminSidebar .sapTntNavLIItem .sapMText,
+.adminSidebar .sapTntNavLIItem span {
+  color: #9FB0C6 !important;
+}
+
+/* Hover */
+.adminSidebar .sapTntNavLIItem:hover,
+.adminSidebar .sapTntNavLIItem:hover > *,
+.adminSidebar .sapTntNavLIItem:hover a,
+.adminSidebar .sapTntNavLIItem:hover .sapTntNavLIItemLink {
+  background: #22344F !important;
+  background-color: #22344F !important;
+  color: #ffffff !important;
+}
+
+.adminSidebar .sapTntNavLIItem:hover .sapUiIcon,
+.adminSidebar .sapTntNavLIItem:hover .sapTntNavLIItemIcon,
+.adminSidebar .sapTntNavLIItem:hover .sapTntNavLIText,
+.adminSidebar .sapTntNavLIItem:hover .sapMText,
+.adminSidebar .sapTntNavLIItem:hover span {
+  color: #ffffff !important;
+}
+
+/* Selected (Dashboard) */
+.adminSidebar .sapTntNavLIItemSelected,
+.adminSidebar .sapTntNavLIItem.sapTntNavLIItemSelected,
+.adminSidebar .sapTntNavLIItemSelected > *,
+.adminSidebar .sapTntNavLIItemSelected a,
+.adminSidebar .sapTntNavLIItemSelected .sapTntNavLIItemLink {
+  background: #274064 !important;
+  background-color: #274064 !important;
+  color: #ffffff !important;
+}
+
+.adminSidebar .sapTntNavLIItemSelected .sapUiIcon,
+.adminSidebar .sapTntNavLIItemSelected .sapTntNavLIItemIcon,
+.adminSidebar .sapTntNavLIItemSelected .sapTntNavLIText,
+.adminSidebar .sapTntNavLIItemSelected .sapMText,
+.adminSidebar .sapTntNavLIItemSelected span {
+  color: #ffffff !important;
+}
+
+/* ── Right main column ──────────────────────────────────────── */
+.adminMain {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #F4F6FA;
+  overflow: hidden;
+}
+
+/* ── Top bar ────────────────────────────────────────────────── */
+.adminTopBar.sapMTB {
+  background: #ffffff !important;
+  border-bottom: 0.5px solid #E0E0E0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 1.5rem !important;
+  min-height: 3.25rem;
+}
+
+/* Same fix as brandTitle: class is ON the heading, not on a wrapper */
+.adminTopTitle,
+.adminTopTitle.sapMTitle,
+.adminTopTitle .sapMTitleInner {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  color: #1a2332 !important;
+}
+
+/* ── Content wrapper ─────────────────────────────────────────── */
+.adminContent {
+  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── KPI row ────────────────────────────────────────────────── */
+.dashRow.sapMFlexBox {
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+/* ── KPI cards — equal height, 4-across on desktop ──────────── */
+.dashKpiCard {
+  background: #ffffff;
+  border: 0.5px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 16px;
+  gap: 10px;
+  flex: 1 1 12rem;
+  min-width: 11rem;
+  max-width: calc(25% - 0.75rem);
+}
+
+/* Icon chip */
+.kpiChip {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  border-radius: 8px;
+}
+
+.kpiChipBlue  { background: rgba(24,  95, 165, 0.12); }
+.kpiChipGreen { background: rgba(16, 126,  62, 0.12); }
+.kpiChipAmber { background: rgba(233,115,  12, 0.12); }
+.kpiChipRed   { background: rgba(187,  0,   0, 0.12); }
+
+.kpiChipIconBlue  { color: #185FA5 !important; font-size: 1.1rem !important; }
+.kpiChipIconGreen { color: #107e3e !important; font-size: 1.1rem !important; }
+.kpiChipIconAmber { color: #e9730c !important; font-size: 1.1rem !important; }
+.kpiChipIconRed   { color: #bb0000 !important; font-size: 1.1rem !important; }
+
+/* Large number */
+.kpiNum {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+}
+
+.kpiNumBlue  { color: #185FA5 !important; }
+.kpiNumGreen { color: #107e3e !important; }
+.kpiNumAmber { color: #e9730c !important; }
+.kpiNumRed   { color: #bb0000 !important; }
+
+/* Small label */
+.kpiLbl {
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: #6b7c93 !important;
+}
+
+/* ── Generic dashboard card ─────────────────────────────────── */
+.dashCard {
+  background: #ffffff;
+  border: 0.5px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 16px;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashCardHdr {
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid #E0E0E0;
+}
+
+/* ── Shared monitor section (route map + metrics + driver trip info)
+   No padding-left offset: adminShell has no min-height so the sidebar
+   scrolls away naturally before this section is reached.           ── */
+.sharedMonitorSection {
+  background: #F4F6FA;
+  gap: 1rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* ── Map: explicit height so Leaflet renders without depending on
+   a percentage chain that collapses when ancestors have no height  ── */
+.mapShell {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid #d9e7f7;
+  width: 100%;
+  height: 340px;
+  background: #f5f9ff;
+}
+
+.trackerMap,
+.trackerMap > div {
+  width: 100% !important;
+  height: 340px !important;
+  display: block;
+}
+
+/* ── Responsive: collapse sidebar on tablet ─────────────────── */
+@media (max-width: 960px) {
+  .adminShell {
+    flex-direction: column;
+  }
+
+  .adminSidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .adminBrand {
+    border-bottom: none;
+    border-right: 1px solid #22344F;
+    padding: 0.5rem 1rem 0.5rem 0;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .adminSideGrow { display: none; }
+
+  .sharedMonitorSection {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .adminContent {
+    padding: 1rem;
+  }
+
+  .dashKpiCard {
+    max-width: calc(50% - 0.5rem);
   }
 }
