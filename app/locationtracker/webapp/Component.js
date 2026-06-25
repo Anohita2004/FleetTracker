@@ -32,6 +32,7 @@ sap.ui.define([
           password: ""
         },
         drivers: [],
+        driverSummary: { total: 0, active: 0, onTrip: 0, inactive: 0 },
         pendingDrivers: [],
         pendingDriverCount: 0,
         rejectReason: "",
