@@ -1,0 +1,318 @@
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:31.225786] Updated app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 ({"lifecycle"=>{"data"=>{"buildpacks"=>["nodejs_buildpack"]}, "type"=>"buildpack"}}) (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:31.336432] Updating process: "web" (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:40.318436] Uploading app package for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:40.563193] Updated app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 ({"environment_variables"=>"[PRIVATE DATA HIDDEN]"}) (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.617555] Creating build for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.938541] Downloading nodejs_buildpack... (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.958066] Downloaded nodejs_buildpack (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.960355] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 creating container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:51.748632] Security group rules were updated (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:51.842832] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 successfully created container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.150793] Downloading app package... (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.150835] Downloading build artifacts cache... (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.253140] Downloaded build artifacts cache (224B) (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.589657] Downloaded app package (2.3M) (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.713754] -----> Nodejs Buildpack version 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.713916] [31;1m**WARNING**[0m buildpack version changed from 1.9.1 to 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897222] -----> Bootstrapping python (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897288] -----> Installing python 3.13.13 (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897530] Copy [/tmp/buildpacks/ba6f4cd24dfd2bf0/dependencies/268a5e3743d51a14b86ea9da64439307/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz] (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695253] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695352] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695364] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695480] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.700538] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.710749] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents4258127480/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.410173] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 stopping instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.410213] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 destroying container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.489305] Staging failed for build 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, API)#
+#2026 06 25 06:07:00.255#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12785#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.517977] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:31.225786] Updated app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 ({"lifecycle"=>{"data"=>{"buildpacks"=>["nodejs_buildpack"]}, "type"=>"buildpack"}}) (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:31.336432] Updating process: "web" (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:40.318436] Uploading app package for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:40.563193] Updated app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 ({"environment_variables"=>"[PRIVATE DATA HIDDEN]"}) (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.617555] Creating build for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.938541] Downloading nodejs_buildpack... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.958066] Downloaded nodejs_buildpack (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:50.960355] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 creating container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:51.748632] Security group rules were updated (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:51.842832] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 successfully created container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.150793] Downloading app package... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.150835] Downloading build artifacts cache... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.253140] Downloaded build artifacts cache (224B) (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.589657] Downloaded app package (2.3M) (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.713754] -----> Nodejs Buildpack version 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.713916] [31;1m**WARNING**[0m buildpack version changed from 1.9.1 to 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897222] -----> Bootstrapping python (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897288] -----> Installing python 3.13.13 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:52.897530] Copy [/tmp/buildpacks/ba6f4cd24dfd2bf0/dependencies/268a5e3743d51a14b86ea9da64439307/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz] (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695253] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695352] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695364] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.695480] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.700538] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:58.710749] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents4258127480/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.410173] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 stopping instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.410213] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 destroying container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.489305] Staging failed for build 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:06:59.517977] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:02.403706] Creating build for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:02.720437] Downloading nodejs_buildpack... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:02.739297] Downloaded nodejs_buildpack (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:02.740114] Cell 3697da87-6170-41a4-acb7-9186f1527dfa creating container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:03.151047] Cell 54b50d35-322b-4617-baa3-c13476b47cb5 successfully destroyed container for instance 28d5087f-f1a4-401a-bf0b-041525588d0f (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:03.691302] Security group rules were updated (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:03.928501] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully created container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.121905] Downloading app package... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.121913] Downloading build artifacts cache... (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.164456] Downloaded build artifacts cache (224B) (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.572487] Downloaded app package (2.3M) (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.696833] -----> Nodejs Buildpack version 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.696981] [31;1m**WARNING**[0m buildpack version changed from 1.9.1 to 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.911430] -----> Bootstrapping python (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.911494] -----> Installing python 3.13.13 (STDOUT, STG)#
+#2026 06 25 06:07:10.308#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12791#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:05.911622] Copy [/tmp/buildpacks/ba6f4cd24dfd2bf0/dependencies/268a5e3743d51a14b86ea9da64439307/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz] (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645521] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645761] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645774] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.646082] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.649632] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.658100] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents830126503/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.596456] Cell 3697da87-6170-41a4-acb7-9186f1527dfa stopping instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.596496] Cell 3697da87-6170-41a4-acb7-9186f1527dfa destroying container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.663498] Staging failed for build 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, API)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.684971] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:20.377#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12797#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:15.572873] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully destroyed container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645521] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645761] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.645774] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.646082] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.649632] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:10.658100] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents830126503/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.596456] Cell 3697da87-6170-41a4-acb7-9186f1527dfa stopping instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.596496] Cell 3697da87-6170-41a4-acb7-9186f1527dfa destroying container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.663498] Staging failed for build 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, API)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:11.684971] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:15.572873] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully destroyed container for instance 4a9bf06c-f755-4c36-af14-5cfd4835b7b2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:23.692409] Creating build for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:24.026463] Downloading nodejs_buildpack... (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:24.051219] Downloaded nodejs_buildpack (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:24.051267] Cell 3697da87-6170-41a4-acb7-9186f1527dfa creating container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:24.866687] Security group rules were updated (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:24.980521] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully created container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:26.689165] Downloading build artifacts cache... (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:26.689173] Downloading app package... (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:26.717501] Downloaded build artifacts cache (224B) (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.101270] Downloaded app package (2.3M) (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.224191] -----> Nodejs Buildpack version 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.224332] [31;1m**WARNING**[0m buildpack version changed from 1.9.1 to 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.411673] -----> Bootstrapping python (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.411708] -----> Installing python 3.13.13 (STDOUT, STG)#
+#2026 06 25 06:07:30.463#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12807#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:27.411805] Copy [/tmp/buildpacks/ba6f4cd24dfd2bf0/dependencies/268a5e3743d51a14b86ea9da64439307/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz] (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334280] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334350] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334365] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334484] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.338041] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.346253] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents1324995774/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.798743] Cell 3697da87-6170-41a4-acb7-9186f1527dfa stopping instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.798789] Cell 3697da87-6170-41a4-acb7-9186f1527dfa destroying container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.844904] Staging failed for build d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, API)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.860160] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:40.414#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12813#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:38.601588] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully destroyed container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334280] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334350] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334365] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.334484] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.338041] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:32.346253] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents1324995774/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.798743] Cell 3697da87-6170-41a4-acb7-9186f1527dfa stopping instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.798789] Cell 3697da87-6170-41a4-acb7-9186f1527dfa destroying container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.844904] Staging failed for build d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, API)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:34.860160] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:38.601588] Cell 3697da87-6170-41a4-acb7-9186f1527dfa successfully destroyed container for instance d99a59b1-d2a7-465c-8ebc-c8a6c393f6d4 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:42.132472] Creating build for app with guid 34ad1875-b233-4cc8-bbcd-a75e6601d374 (STDOUT, API)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:42.462730] Downloading nodejs_buildpack... (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:42.490276] Downloaded nodejs_buildpack (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:42.490328] Cell 4401fcd0-006d-4ceb-9b51-aa22a1b186cf creating container for instance ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:43.326307] Security group rules were updated (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:43.590292] Cell 4401fcd0-006d-4ceb-9b51-aa22a1b186cf successfully created container for instance ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:43.924499] Downloading build artifacts cache... (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:43.924529] Downloading app package... (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:43.970887] Downloaded build artifacts cache (224B) (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.338320] Downloaded app package (2.3M) (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.449311] -----> Nodejs Buildpack version 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.449374] [31;1m**WARNING**[0m buildpack version changed from 1.9.1 to 1.9.2 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.641666] -----> Bootstrapping python (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.641689] -----> Installing python 3.13.13 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:44.641768] Copy [/tmp/buildpacks/ba6f4cd24dfd2bf0/dependencies/268a5e3743d51a14b86ea9da64439307/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz] (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.288544] -----> Installing binaries (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.288628] engines.node (package.json): 20 (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.288641] engines.npm (package.json): unspecified (use default) (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.288746] [31;1m**ERROR**[0m Unable to install node: no match found for 20 in [22.22.2 24.14.0 24.15.0] (STDOUT, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.291847] Failed to compile droplet: Failed to run all supply scripts: exit status 14 (STDERR, STG)#
+#2026 06 25 06:07:50.491#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12820#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:49.299178] Failed to read buildpack config.yml for buildpack key 2d901b1a-0f11-423a-812d-358a87077f4e_ba81df85f52dda2c02a3db159f7418b08d6d8121d209f588b8467cd5abcfed3f: open /tmp/contents458005578/deps/0/config.yml: no such file or directoryExit status 223 (STDOUT, STG)#
+#2026 06 25 06:08:00.487#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12828#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:50.320620] Cell 4401fcd0-006d-4ceb-9b51-aa22a1b186cf stopping instance ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, STG)#
+#2026 06 25 06:08:00.487#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12828#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:50.320656] Cell 4401fcd0-006d-4ceb-9b51-aa22a1b186cf destroying container for instance ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, STG)#
+#2026 06 25 06:08:00.487#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12828#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:50.369937] Staging failed for build ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, API)#
+#2026 06 25 06:08:00.487#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12828#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:50.385721] Failed to stage build: staging failed (STDERR, API)#
+#2026 06 25 06:08:00.487#Z#DEBUG#fc08dd14-705b-11f1-95f0-eeee0a9450f5.locationtracker-db-deployer#flowable-async-job-executor-thread-12828#
+[PollStageAppStatusExecution] 34ad1875-b233-4cc8-bbcd-a75e6601d374 [2026-06-25T06:07:54.184591] Cell 4401fcd0-006d-4ceb-9b51-aa22a1b186cf successfully destroyed container for instance ac5fa188-912a-47c4-baa9-98493fe4e882 (STDOUT, STG)#
