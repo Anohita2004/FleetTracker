@@ -538,3 +538,278 @@
     max-width: calc(50% - 0.5rem);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGIN — split-screen  (classes: ftLogin* · ftRoleTabs)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Shell: vertically + horizontally centres the card ──────── */
+.ftLoginShell {
+  min-height: 80vh;
+  align-items: center;
+  justify-content: center;
+  background: #F4F6FA;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+/* ── Card wrapper ───────────────────────────────────────────── */
+.ftLoginCard {
+  width: 100%;
+  max-width: 760px;
+  min-height: 430px;
+  border: 0.5px solid #E0E0E0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(20, 35, 61, 0.10);
+  padding: 0;
+  align-items: stretch !important;
+}
+
+/* ── Left: brand panel ──────────────────────────────────────── */
+.ftLoginBrand {
+  width: 44%;
+  background: #14233D;
+  padding: 2.5rem 2rem;
+  gap: 1.5rem;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.ftLoginLogo {
+  gap: 0.625rem;
+}
+
+.ftLoginLogoIcon {
+  color: #ffffff !important;
+  font-size: 1.75rem !important;
+}
+
+/* sap.m.Title adds its custom class directly on the heading element */
+.ftLoginLogoTitle,
+.ftLoginLogoTitle.sapMTitle {
+  color: #ffffff !important;
+  font-size: 1.4rem !important;
+  font-weight: 500 !important;
+}
+
+.ftLoginTagline {
+  color: #C7D3E3 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+
+.ftLoginFeatures {
+  gap: 0.875rem;
+}
+
+.ftLoginFeatureRow {
+  gap: 0.625rem;
+}
+
+.ftLoginFeatureIcon {
+  color: #5B9BD5 !important;
+  font-size: 1rem !important;
+  flex-shrink: 0;
+}
+
+.ftLoginFeatureText {
+  color: #C7D3E3 !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── Right: form panel ──────────────────────────────────────── */
+.ftLoginForm {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2.5rem 2.25rem;
+  gap: 1rem;
+  background: #ffffff;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.ftLoginFormTitle,
+.ftLoginFormTitle.sapMTitle {
+  font-size: 1.3rem !important;
+  font-weight: 500 !important;
+  color: #1a2332 !important;
+}
+
+.ftLoginFormSubtitle {
+  font-size: 0.85rem !important;
+  color: #6b7c93 !important;
+}
+
+/* ── Segmented role tabs ─────────────────────────────────────
+   ⚠ Theme-sensitive: these selectors target sap.m.IconTabBar
+   internal DOM. Both Horizon (≥1.108) and Quartz/Belize class
+   names are listed. If the default underline or button style
+   still shows, inspect the rendered HTML and add the missing
+   class name to the matching selector group.
+   ─────────────────────────────────────────────────────────── */
+
+/* Header row → grey pill container */
+.ftRoleTabs .sapMITH,
+.ftRoleTabs .sapMITBHead,
+.ftRoleTabs .sapMITBContainerH {
+  background: #F0F2F5 !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+}
+
+/* Remove the default selection underline */
+.ftRoleTabs .sapMITH::after,
+.ftRoleTabs .sapMITBItem::after,
+.ftRoleTabs .sapMITBFilter::after,
+.ftRoleTabs .sapMITBSelected::after,
+.ftRoleTabs .sapMITBFilterSelected::after {
+  display: none !important;
+}
+
+/* Tab buttons: equal width, transparent default */
+.ftRoleTabs .sapMITBItem,
+.ftRoleTabs .sapMITBFilter {
+  flex: 1 1 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-height: 36px;
+}
+
+/* Default text + icon colour */
+.ftRoleTabs .sapMITBText,
+.ftRoleTabs .sapMITBFilterText,
+.ftRoleTabs .sapMITBFilterIcon {
+  color: #6b7c93 !important;
+  font-size: 0.85rem !important;
+}
+
+/* Selected segment: navy fill */
+.ftRoleTabs .sapMITBItemSelected,
+.ftRoleTabs .sapMITBFilterSelected,
+.ftRoleTabs .sapMITBSelected {
+  background: #185FA5 !important;
+  border-radius: 7px !important;
+  box-shadow: 0 1px 4px rgba(24, 95, 165, 0.25) !important;
+}
+
+.ftRoleTabs .sapMITBItemSelected .sapMITBText,
+.ftRoleTabs .sapMITBFilterSelected .sapMITBText,
+.ftRoleTabs .sapMITBSelected .sapMITBText,
+.ftRoleTabs .sapMITBItemSelected .sapMITBFilterText,
+.ftRoleTabs .sapMITBFilterSelected .sapMITBFilterText,
+.ftRoleTabs .sapMITBSelected .sapMITBFilterText,
+.ftRoleTabs .sapMITBItemSelected .sapMITBFilterIcon,
+.ftRoleTabs .sapMITBFilterSelected .sapMITBFilterIcon,
+.ftRoleTabs .sapMITBSelected .sapMITBFilterIcon {
+  color: #ffffff !important;
+}
+
+/* ── Tab content ─────────────────────────────────────────────── */
+.ftLoginTabContent {
+  gap: 0.875rem;
+  padding-top: 0.5rem;
+}
+
+.ftLoginSsoHint {
+  font-size: 0.85rem !important;
+  color: #6b7c93 !important;
+}
+
+/* ── Form fields ─────────────────────────────────────────────── */
+.ftLoginField {
+  gap: 4px;
+}
+
+.ftLoginInput.sapMInputBase .sapMInputBaseInner {
+  height: 40px !important;
+  border-radius: 8px !important;
+  padding-left: 0.75rem !important;
+  font-size: 0.875rem !important;
+  box-sizing: border-box;
+}
+
+.ftLoginInput.sapMInputBase:focus-within .sapMInputBaseInner {
+  border-color: #185FA5 !important;
+  outline: 2px solid rgba(24, 95, 165, 0.20) !important;
+  outline-offset: 1px;
+}
+
+/* ── Buttons: full-width, flat navy ─────────────────────────── */
+.ftLoginBtn.sapMBtn {
+  width: 100% !important;
+}
+
+.ftLoginBtn .sapMBtnInner {
+  height: 42px !important;
+  border-radius: 8px !important;
+  background: #185FA5 !important;
+  border-color: #185FA5 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ftLoginBtn .sapMBtnInner:hover {
+  background: #145090 !important;
+  border-color: #145090 !important;
+}
+
+.ftLoginBtn .sapMBtnIcon,
+.ftLoginBtn .sapUiIcon {
+  color: #ffffff !important;
+}
+
+/* ── Error message strip ─────────────────────────────────────── */
+.ftLoginError.sapMMessageStrip {
+  border-radius: 8px;
+}
+
+/* ── Status row ──────────────────────────────────────────────── */
+.ftLoginStatus {
+  gap: 0.5rem;
+}
+
+.ftStatusDot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  background: #9FB0C6;
+}
+
+.ftStatusText {
+  font-size: 0.75rem !important;
+  color: #9FB0C6 !important;
+}
+
+/* ── Responsive: stack on ≤640px ─────────────────────────────── */
+@media (max-width: 640px) {
+  .ftLoginCard {
+    flex-direction: column !important;
+    max-width: 100%;
+    min-height: unset;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .ftLoginBrand {
+    width: 100%;
+    padding: 2rem 1.5rem;
+  }
+
+  .ftLoginForm {
+    padding: 2rem 1.5rem;
+  }
+}

@@ -27,35 +27,82 @@
               </VBox>
             </VBox>
 
-            <VBox visible="{= ${appState>/sCurrentView} === 'loginPage' }" class="stateShell">
-              <VBox class="centerCard">
-                <Title text="FleetTracker" level="H2" />
-                <Text text="Choose how you want to sign in." class="sapUiTinyMarginBottom" />
-                <IconTabBar
-                  expandable="false"
-                  selectedKey="{appState>/loginTab}"
-                  select=".onLoginTabSelect">
-                  <items>
-                    <IconTabFilter text="Admin Login" key="admin" icon="sap-icon://manager">
-                      <VBox class="sapUiSmallMarginTop" width="100%">
-                        <Text text="Use your FleetAdmin credentials." />
-                        <Button text="Login as Fleet Admin" type="Emphasized" press=".onAdminLoginPress" class="sapUiSmallMarginTop" />
-                      </VBox>
-                    </IconTabFilter>
-                    <IconTabFilter text="Driver Login" key="driver" icon="sap-icon://employee">
-                      <VBox class="sapUiSmallMarginTop" width="100%">
-                        <Label text="Email" />
-                        <Input value="{appState>/driverLogin/email}" type="Email" width="100%" />
-                        <Label text="Password" class="sapUiSmallMarginTop" />
-                        <Input value="{appState>/driverLogin/password}" type="Password" width="100%" />
-                        <Button text="Login" type="Emphasized" press=".onDriverLoginPress" class="sapUiSmallMarginTop" />
-                      </VBox>
-                    </IconTabFilter>
-                  </items>
-                </IconTabBar>
-                <Text text="{appState>/authError}" visible="{= !!${appState>/authError} }" class="sapUiSmallMarginTop" />
-                <ObjectStatus title="System Status" text="Not authenticated" state="Information" class="sapUiSmallMarginTop" />
-              </VBox>
+            <!-- ── Login — split-screen ──────────────────────────────── -->
+            <VBox visible="{= ${appState>/sCurrentView} === 'loginPage' }" class="ftLoginShell">
+              <HBox class="ftLoginCard" wrap="Wrap">
+
+                <!-- Left: brand panel -->
+                <VBox class="ftLoginBrand">
+                  <HBox class="ftLoginLogo" alignItems="Center">
+                    <core:Icon src="sap-icon://shipping-status" class="ftLoginLogoIcon" />
+                    <Title text="FleetTracker" level="H2" class="ftLoginLogoTitle" />
+                  </HBox>
+                  <Text text="Track every vehicle, trip, and checkpoint in real time." class="ftLoginTagline" />
+                  <VBox class="ftLoginFeatures">
+                    <HBox class="ftLoginFeatureRow" alignItems="Center">
+                      <core:Icon src="sap-icon://map" class="ftLoginFeatureIcon" />
+                      <Text text="Live GPS across your fleet" class="ftLoginFeatureText" />
+                    </HBox>
+                    <HBox class="ftLoginFeatureRow" alignItems="Center">
+                      <core:Icon src="sap-icon://document-list" class="ftLoginFeatureIcon" />
+                      <Text text="Freight orders and checkpoints" class="ftLoginFeatureText" />
+                    </HBox>
+                    <HBox class="ftLoginFeatureRow" alignItems="Center">
+                      <core:Icon src="sap-icon://key" class="ftLoginFeatureIcon" />
+                      <Text text="Gate-pass and access control" class="ftLoginFeatureText" />
+                    </HBox>
+                  </VBox>
+                </VBox>
+
+                <!-- Right: form panel -->
+                <VBox class="ftLoginForm">
+                  <Title text="Welcome back" level="H3" class="ftLoginFormTitle" />
+                  <Text text="Choose how you want to sign in." class="ftLoginFormSubtitle" />
+                  <IconTabBar
+                    expandable="false"
+                    selectedKey="{appState>/loginTab}"
+                    select=".onLoginTabSelect"
+                    class="ftRoleTabs">
+                    <items>
+                      <IconTabFilter text="Admin" key="admin" icon="sap-icon://manager">
+                        <VBox class="ftLoginTabContent">
+                          <Text text="Use your FleetAdmin credentials." class="ftLoginSsoHint" />
+                          <Button text="Sign in as admin" icon="sap-icon://log" type="Emphasized"
+                                  press=".onAdminLoginPress" class="ftLoginBtn" />
+                        </VBox>
+                      </IconTabFilter>
+                      <IconTabFilter text="Driver" key="driver" icon="sap-icon://employee">
+                        <VBox class="ftLoginTabContent">
+                          <VBox class="ftLoginField">
+                            <Label text="Email" />
+                            <Input value="{appState>/driverLogin/email}" type="Email"
+                                   placeholder="you@company.com" width="100%" class="ftLoginInput" />
+                          </VBox>
+                          <VBox class="ftLoginField">
+                            <Label text="Password" />
+                            <Input value="{appState>/driverLogin/password}" type="Password"
+                                   placeholder="Enter your password" width="100%" class="ftLoginInput" />
+                          </VBox>
+                          <Button text="Sign in" icon="sap-icon://log" type="Emphasized"
+                                  press=".onDriverLoginPress" class="ftLoginBtn" />
+                        </VBox>
+                      </IconTabFilter>
+                    </items>
+                  </IconTabBar>
+                  <MessageStrip
+                    text="{appState>/authError}"
+                    type="Error"
+                    showIcon="true"
+                    showCloseButton="false"
+                    visible="{= !!${appState>/authError} }"
+                    class="ftLoginError" />
+                  <HBox class="ftLoginStatus" alignItems="Center">
+                    <VBox class="ftStatusDot" />
+                    <Text text="System status: not authenticated" class="ftStatusText" />
+                  </HBox>
+                </VBox>
+
+              </HBox>
             </VBox>
 
             <!-- ═══════════════════════════════════════════════════════════
