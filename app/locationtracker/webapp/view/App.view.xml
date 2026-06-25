@@ -3,6 +3,7 @@
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
   xmlns:core="sap.ui.core"
+  xmlns:tnt="sap.tnt"
   xmlns:form="sap.ui.layout.form"
   xmlns:customData="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
   displayBlock="true">
@@ -57,110 +58,209 @@
               </VBox>
             </VBox>
 
-            <VBox visible="{= ${appState>/sCurrentView} === 'adminDashboard' }">
-              <Toolbar class="headerBar">
-                <Title text="FleetTracker" />
-                <ToolbarSpacer />
-                <Text text="{appState>/adminProfile/name}" />
-                <Button text="Manage Fleet" icon="sap-icon://shipping-status" type="Emphasized" press=".onNavigateToFleetOverview" />
-                <Button text="Freight Orders" icon="sap-icon://shipping-status" press=".onNavigateToFreightOrders" />
-                <Button text="Gate Passes" icon="sap-icon://key" press=".onNavigateToGatePasses" />
-                <Button text="Logout" type="Transparent" press=".onLogoutPress" />
-              </Toolbar>
+            <!-- ═══════════════════════════════════════════════════════════
+                 ADMIN DASHBOARD — dark sidebar layout
+                 ═══════════════════════════════════════════════════════════ -->
+            <HBox visible="{= ${appState>/sCurrentView} === 'adminDashboard' }" class="adminShell">
 
-              <VBox class="sectionCard">
-                <HBox justifyContent="SpaceBetween" alignItems="Center">
-                  <Title text="Pending Registrations" level="H3" />
-                  <ObjectStatus text="{= ${appState>/pendingDriverCount} > 0 ? ${appState>/pendingDriverCount} + ' pending' : 'None'}" state="{= ${appState>/pendingDriverCount} > 0 ? 'Warning' : 'None'}" />
+              <!-- ── Left sidebar ─────────────────────────────────────── -->
+              <VBox class="adminSidebar">
+                <HBox class="adminBrand" alignItems="Center">
+                  <core:Icon src="sap-icon://fleet" class="adminBrandIcon" />
+                  <Title text="FleetTracker" level="H5" class="adminBrandTitle" />
                 </HBox>
-                <Table items="{appState>/pendingDrivers}" class="sapUiSmallMarginTop" noDataText="No pending registrations">
-                  <columns>
-                    <Column><Text text="Name" /></Column>
-                    <Column><Text text="Email" /></Column>
-                    <Column><Text text="Phone" /></Column>
-                    <Column><Text text="License #" /></Column>
-                    <Column><Text text="License Expiry" /></Column>
-                    <Column><Text text="Document" /></Column>
-                    <Column><Text text="Actions" /></Column>
-                  </columns>
-                  <items>
-                    <ColumnListItem>
-                      <cells>
-                        <Text text="{appState>name}" />
-                        <Text text="{appState>email}" />
-                        <Text text="{appState>phone}" />
-                        <Text text="{appState>licenseNumber}" />
-                        <Text text="{path: 'appState>licenseExpiry', formatter: '.formatDate'}" />
-                        <Button text="View" press=".onViewDriverDoc">
-                          <customData>
-                            <core:CustomData key="driverDocUrl" value="{appState>documentUrl}" />
-                          </customData>
-                        </Button>
-                        <HBox>
-                          <Button text="Approve" type="Emphasized" press=".onApproveDriver">
-                            <customData>
-                              <core:CustomData key="driverId" value="{appState>ID}" />
-                            </customData>
-                          </Button>
-                          <Button text="Reject" type="Reject" press=".onOpenRejectDialog">
-                            <customData>
-                              <core:CustomData key="driverId" value="{appState>ID}" />
-                            </customData>
-                          </Button>
-                        </HBox>
-                      </cells>
-                    </ColumnListItem>
-                  </items>
-                </Table>
+                <tnt:NavigationList class="adminNavList">
+                  <tnt:NavigationListItem text="Dashboard" icon="sap-icon://home" selected="true" />
+                  <tnt:NavigationListItem text="Drivers" icon="sap-icon://employee" />
+                  <tnt:NavigationListItem text="Vehicles" icon="sap-icon://fleet" press=".onNavigateToFleetOverview" />
+                  <tnt:NavigationListItem text="Freight orders" icon="sap-icon://document-list" press=".onNavigateToFreightOrders" />
+                  <tnt:NavigationListItem text="Gate pass" icon="sap-icon://key" press=".onNavigateToGatePasses" />
+                  <tnt:NavigationListItem text="Alerts" icon="sap-icon://alert" />
+                  <tnt:NavigationListItem text="Reports" icon="sap-icon://bar-chart" />
+                </tnt:NavigationList>
+                <VBox class="adminSideGrow" />
+                <tnt:NavigationList class="adminNavListFixed">
+                  <tnt:NavigationListItem icon="sap-icon://employee" text="{appState>/adminProfile/name}" />
+                  <tnt:NavigationListItem icon="sap-icon://log" text="Logout" press=".onLogoutPress" />
+                </tnt:NavigationList>
               </VBox>
 
-              <VBox class="sectionCard">
-                <HBox justifyContent="SpaceBetween" alignItems="Center">
-                  <Title text="Drivers" level="H3" />
-                  <Text text="Manage the drivers in your fleet." />
-                </HBox>
-                <Table items="{appState>/drivers}" class="sapUiSmallMarginTop" inset="false" mode="SingleSelectMaster" selectionChange=".onSelectDriver">
-                  <columns>
-                    <Column><Text text="Name" /></Column>
-                    <Column><Text text="Email" /></Column>
-                    <Column><Text text="Vehicle ID" /></Column>
-                    <Column hAlign="Center"><Text text="Status" /></Column>
-                    <Column hAlign="Center"><Text text="Activity" /></Column>
-                    <Column><Text text="License #" /></Column>
-                    <Column hAlign="Center"><Text text="Reg. Status" /></Column>
-                    <Column hAlign="Center"><Text text="Action" /></Column>
-                  </columns>
-                  <items>
-                    <ColumnListItem>
-                      <cells>
-                        <Text text="{appState>name}" />
-                        <Text text="{appState>email}" />
-                        <Text text="{appState>vehicleId}" />
-                        <ObjectStatus
-                          text="{= ${appState>isActive} ? 'Active' : 'Inactive' }"
-                          state="{= ${appState>isActive} ? 'Success' : 'Warning' }" />
-                        <ObjectStatus
-                          text="{appState>activityStatus}"
-                          state="{= ${appState>activityStatus} === 'On Trip' ? 'Success' : 'None' }" />
-                        <Text text="{appState>licenseNumber}" />
-                        <ObjectStatus
-                          text="{appState>registrationStatus}"
-                          state="{= ${appState>registrationStatus} === 'APPROVED' ? 'Success' : ${appState>registrationStatus} === 'PENDING' ? 'Warning' : 'Error' }" />
-                        <HBox>
-                          <Button icon="sap-icon://decline" type="Transparent" press=".onDeleteDriver"
-                                  visible="{= ${appState>isActive} }" tooltip="Deactivate" />
-                          <Button icon="sap-icon://activate" type="Transparent" press=".onReactivateDriver"
-                                  visible="{= !${appState>isActive} }" tooltip="Reactivate" />
-                          <Button icon="sap-icon://delete" type="Transparent" press=".onPermanentlyDeleteDriver"
-                                  visible="{= !${appState>isActive} }" tooltip="Permanently Delete" />
-                        </HBox>
-                      </cells>
-                    </ColumnListItem>
-                  </items>
-                </Table>
-              </VBox>
+              <!-- ── Right main area ──────────────────────────────────── -->
+              <VBox class="adminMain">
 
-            </VBox>
+                <!-- Top bar -->
+                <Toolbar class="adminTopBar">
+                  <Title text="Dashboard" level="H4" class="adminTopTitle" />
+                  <ToolbarSpacer />
+                  <Button icon="sap-icon://bell" type="Transparent" tooltip="Notifications" />
+                  <Button text="Manage fleet" icon="sap-icon://shipping-status" type="Emphasized" press=".onNavigateToFleetOverview" />
+                </Toolbar>
+
+                <VBox class="adminContent">
+
+                  <!-- KPI row — 4 cards -->
+                  <HBox wrap="Wrap" class="dashRow">
+                    <VBox class="dashKpiCard">
+                      <VBox class="kpiChip kpiChipBlue" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://group" class="kpiChipIcon kpiChipIconBlue" />
+                      </VBox>
+                      <Text text="{appState>/driverSummary/total}" class="kpiNum kpiNumBlue" />
+                      <Text text="Total drivers" class="kpiLbl" />
+                    </VBox>
+                    <VBox class="dashKpiCard">
+                      <VBox class="kpiChip kpiChipGreen" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://employee-approvals" class="kpiChipIcon kpiChipIconGreen" />
+                      </VBox>
+                      <Text text="{appState>/driverSummary/active}" class="kpiNum kpiNumGreen" />
+                      <Text text="Active drivers" class="kpiLbl" />
+                    </VBox>
+                    <VBox class="dashKpiCard">
+                      <VBox class="kpiChip kpiChipAmber" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://shipping-status" class="kpiChipIcon kpiChipIconAmber" />
+                      </VBox>
+                      <Text text="{appState>/driverSummary/onTrip}" class="kpiNum kpiNumAmber" />
+                      <Text text="On trip" class="kpiLbl" />
+                    </VBox>
+                    <VBox class="dashKpiCard">
+                      <VBox class="kpiChip kpiChipRed" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://alert" class="kpiChipIcon kpiChipIconRed" />
+                      </VBox>
+                      <Text text="{appState>/pendingDriverCount}" class="kpiNum kpiNumRed" />
+                      <Text text="Pending approval" class="kpiLbl" />
+                    </VBox>
+                  </HBox>
+
+                  <!-- Drivers card -->
+                  <VBox class="dashCard">
+                    <HBox justifyContent="SpaceBetween" alignItems="Center" class="dashCardHdr">
+                      <Title text="Drivers" level="H4" />
+                      <SearchField placeholder="Search name, email or licence…" width="18rem" liveChange=".onDriverSearch" />
+                    </HBox>
+                    <Table items="{appState>/drivers}" inset="false" mode="SingleSelectMaster"
+                           selectionChange=".onSelectDriver" noDataText="No drivers found">
+                      <columns>
+                        <Column><Text text="Name" /></Column>
+                        <Column><Text text="Email" /></Column>
+                        <Column><Text text="Vehicle ID" /></Column>
+                        <Column hAlign="Center"><Text text="Status" /></Column>
+                        <Column hAlign="Center"><Text text="Activity" /></Column>
+                        <Column><Text text="License #" /></Column>
+                        <Column hAlign="Center"><Text text="Reg. status" /></Column>
+                        <Column hAlign="Center"><Text text="Action" /></Column>
+                      </columns>
+                      <items>
+                        <ColumnListItem>
+                          <cells>
+                            <HBox alignItems="Center">
+                              <VBox class="driverAvatar" justifyContent="Center" alignItems="Center">
+                                <Text text="{path: 'appState>name', formatter: '.formatInitials'}" class="driverAvatarText" />
+                              </VBox>
+                              <Text text="{appState>name}" />
+                            </HBox>
+                            <Text text="{appState>email}" />
+                            <Text text="{appState>vehicleId}" />
+                            <ObjectStatus
+                              text="{= ${appState>isActive} ? 'Active' : 'Inactive' }"
+                              state="{= ${appState>isActive} ? 'Success' : 'Warning' }" />
+                            <ObjectStatus
+                              text="{appState>activityStatus}"
+                              state="{= ${appState>activityStatus} === 'On Trip' ? 'Success' : 'None' }" />
+                            <Text text="{appState>licenseNumber}" />
+                            <ObjectStatus
+                              text="{appState>registrationStatus}"
+                              state="{= ${appState>registrationStatus} === 'APPROVED' ? 'Success' : ${appState>registrationStatus} === 'PENDING' ? 'Warning' : 'Error' }" />
+                            <HBox>
+                              <Button icon="sap-icon://decline" type="Transparent" press=".onDeleteDriver"
+                                      visible="{= ${appState>isActive} }" tooltip="Deactivate" />
+                              <Button icon="sap-icon://activate" type="Transparent" press=".onReactivateDriver"
+                                      visible="{= !${appState>isActive} }" tooltip="Reactivate" />
+                              <Button icon="sap-icon://delete" type="Transparent" press=".onPermanentlyDeleteDriver"
+                                      visible="{= !${appState>isActive} }" tooltip="Permanently Delete" />
+                            </HBox>
+                          </cells>
+                        </ColumnListItem>
+                      </items>
+                    </Table>
+                  </VBox>
+
+
+                  <!-- Current trip / Live position / Captured points — admin only -->
+                  <HBox wrap="Wrap" class="cardRow kpiRow">
+                    <Panel headerText="Current trip" class="metricCard kpiCard">
+                      <content>
+                        <VBox class="metricContent">
+                          <HBox justifyContent="SpaceBetween" alignItems="Center">
+                            <ObjectStatus title="Title" text="{= ${appState>/currentTrip/title} || 'No active trip'}" />
+                            <core:Icon src="sap-icon://journey-change" class="kpiIcon" />
+                          </HBox>
+                          <ObjectStatus title="Status" text="{= ${appState>/currentTrip/status} || 'IDLE'}" state="{= ${appState>/currentTrip/status} === 'ACTIVE' ? 'Success' : 'Information' }" />
+                          <ObjectStatus title="Started At" text="{= ${appState>/currentTrip/startedAt} || '-'}" />
+                        </VBox>
+                      </content>
+                    </Panel>
+
+                    <Panel headerText="Live position" class="metricCard kpiCard">
+                      <content>
+                        <VBox class="metricContent">
+                          <HBox justifyContent="SpaceBetween" alignItems="Center">
+                            <Title text="Latest Coordinates" level="H5" />
+                            <core:Icon src="sap-icon://map-3" class="kpiIcon" />
+                          </HBox>
+                          <ObjectStatus title="Latitude" text="{= ${appState>/lastPoint/latitude} || '-'}" />
+                          <ObjectStatus title="Longitude" text="{= ${appState>/lastPoint/longitude} || '-'}" />
+                          <ObjectStatus title="Accuracy (m)" text="{= ${appState>/lastPoint/accuracy} || '-'}" />
+                        </VBox>
+                      </content>
+                    </Panel>
+
+                    <Panel headerText="Captured points" class="metricCard kpiCard">
+                      <content>
+                        <VBox class="metricContent">
+                          <HBox justifyContent="SpaceBetween" alignItems="Center">
+                            <Title text="Path Density" level="H5" />
+                            <core:Icon src="sap-icon://line-chart" class="kpiIcon" />
+                          </HBox>
+                          <ObjectNumber number="{appState>/totalPoints}" unit="pts" />
+                          <ProgressIndicator percentValue="{= ${appState>/totalPoints} > 500 ? 100 : ${appState>/totalPoints} / 5 }" displayValue="{= ${appState>/totalPoints} + ' points captured'}" state="Success" />
+                        </VBox>
+                      </content>
+                    </Panel>
+                  </HBox>
+
+                  <!-- Route map — inline so it sits inside the sidebar layout -->
+                  <Panel headerText="Route Map" class="mapPanel">
+                    <content>
+                      <VBox class="mapShell">
+                        <core:HTML id="trackerMap" content="&lt;div class='trackerMap' style='width:100%;height:340px;'&gt;&lt;/div&gt;" class="trackerMap" />
+                      </VBox>
+                    </content>
+                  </Panel>
+
+                  <!-- Performance metrics -->
+                  <Panel headerText="Performance Metrics" class="metricCard metricsPanel">
+                    <content>
+                      <HBox wrap="Wrap" class="cardRow">
+                        <VBox class="metricContent metricColumn">
+                          <ObjectStatus title="Total Trips" text="{appState>/metrics/totalTrips}" />
+                          <ObjectStatus title="Completed Trips" text="{appState>/metrics/completedTrips}" />
+                          <ObjectStatus title="Completion Rate" text="{= ${appState>/metrics/completionRate} + '%'}" state="Success" />
+                          <ObjectStatus title="Avg Points / Trip" text="{appState>/metrics/avgPointsPerTrip}" />
+                          <ObjectStatus title="Avg GPS Accuracy (m)" text="{appState>/metrics/avgGpsAccuracy}" />
+                        </VBox>
+                        <VBox class="metricContent metricColumn">
+                          <ObjectStatus title="Avg Session Duration (ms)" text="{appState>/metrics/avgSessionDurationMs}" />
+                          <ObjectStatus title="Backend Ingest Success" text="{= ${appState>/metrics/ingestSuccessRate} + '%'}" state="Success" />
+                          <ObjectStatus title="Avg Backend Ingest Latency (ms)" text="{appState>/metrics/avgIngestLatencyMs}" />
+                          <ObjectStatus title="Avg Client Update Latency (ms)" text="{appState>/metrics/avgClientUpdateLatencyMs}" />
+                          <ObjectStatus title="Latest Client Update Latency (ms)" text="{appState>/metrics/latestClientUpdateLatencyMs}" />
+                        </VBox>
+                      </HBox>
+                    </content>
+                  </Panel>
+
+                </VBox><!-- /adminContent -->
+              </VBox><!-- /adminMain -->
+            </HBox><!-- /adminShell -->
 
             <VBox visible="{= ${appState>/sCurrentView} === 'driverDashboard' }">
               <Toolbar class="headerBar">
@@ -189,8 +289,10 @@
               </VBox>
             </VBox>
 
-            <VBox visible="{= ${appState>/sCurrentView} === 'adminDashboard' || ${appState>/sCurrentView} === 'driverDashboard' }">
-              <HBox wrap="Wrap" class="cardRow kpiRow">
+            <!-- Driver-only section: trip info cards + performance metrics (admin gets these inline above) -->
+            <VBox visible="{= ${appState>/sCurrentView} === 'driverDashboard' }" class="sharedMonitorSection">
+              <!-- Trip cards shown here only for driver; admin gets them inline above -->
+              <HBox wrap="Wrap" class="cardRow kpiRow" visible="{= ${appState>/sCurrentView} === 'driverDashboard' }">
                 <Panel headerText="Current Trip" class="metricCard kpiCard">
                   <content>
                     <VBox class="metricContent">
@@ -232,14 +334,6 @@
                 </Panel>
               </HBox>
 
-              <Panel headerText="Route Map" class="mapPanel">
-                <content>
-                  <VBox class="mapShell">
-                    <core:HTML id="trackerMap" content="&lt;div class='trackerMap' style='width:100%;height:100%;min-height:28rem;'&gt;&lt;/div&gt;" class="trackerMap" />
-                  </VBox>
-                </content>
-              </Panel>
-
               <Panel headerText="Performance Metrics" class="metricCard metricsPanel">
                 <content>
                   <HBox wrap="Wrap" class="cardRow">
@@ -272,20 +366,48 @@
               <Button text="Add Truck" icon="sap-icon://add" type="Emphasized" press=".onOpenAddTruckDialog" />
               <Button text="Refresh" icon="sap-icon://refresh" press=".onRefreshFleetOverview" />
               <ToolbarSpacer />
+              <SearchField placeholder="Search truck #, model or registration…" width="22rem" liveChange=".onTruckSearch" />
             </Toolbar>
             <HBox wrap="Wrap" class="cardRow kpiRow">
-              <Panel headerText="Total Trucks" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/total}" unit="trucks" /></content>
-              </Panel>
-              <Panel headerText="Active" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/active}" /></content>
-              </Panel>
-              <Panel headerText="Idle" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/idle}" /></content>
-              </Panel>
-              <Panel headerText="Deactivated" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/fleetSummary/deactivated}" /></content>
-              </Panel>
+              <VBox class="metricCard kpiCard kpiCardBlue">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://fleet" class="kpiCardIcon kpiIconBlue" />
+                    <Text text="Total Trucks" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <HBox alignItems="Baseline">
+                    <Text text="{appState>/fleetSummary/total}" class="kpiCardBigNumber" />
+                    <Text text="trucks" class="kpiCardUnit" />
+                  </HBox>
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardGreen">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://accept" class="kpiCardIcon kpiIconGreen" />
+                    <Text text="Active" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/fleetSummary/active}" class="kpiCardBigNumber kpiNumberGreen" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardOrange">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://pause" class="kpiCardIcon kpiIconOrange" />
+                    <Text text="Idle" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/fleetSummary/idle}" class="kpiCardBigNumber kpiNumberOrange" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardRed">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://cancel" class="kpiCardIcon kpiIconRed" />
+                    <Text text="Deactivated" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/fleetSummary/deactivated}" class="kpiCardBigNumber kpiNumberRed" />
+                </VBox>
+              </VBox>
             </HBox>
             <Table id="fleetTable" items="{appState>/trucks}" mode="SingleSelectMaster" selectionChange=".onSelectTruck">
               <columns>
@@ -357,18 +479,42 @@
         <content>
           <VBox class="sectionCard">
             <HBox wrap="Wrap" class="cardRow kpiRow">
-              <Panel headerText="Total" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/total}" /></content>
-              </Panel>
-              <Panel headerText="Planned" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/planned}" /></content>
-              </Panel>
-              <Panel headerText="Dispatched" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/dispatched}" /></content>
-              </Panel>
-              <Panel headerText="Delivered" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/freightOrderCounts/delivered}" /></content>
-              </Panel>
+              <VBox class="metricCard kpiCard kpiCardNeutral">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://document-list" class="kpiCardIcon kpiIconNeutral" />
+                    <Text text="Total Orders" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/freightOrderCounts/total}" class="kpiCardBigNumber" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardBlue">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://calendar" class="kpiCardIcon kpiIconBlue" />
+                    <Text text="Planned" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/freightOrderCounts/planned}" class="kpiCardBigNumber kpiNumberBlue" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardOrange">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://shipping-status" class="kpiCardIcon kpiIconOrange" />
+                    <Text text="Dispatched" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/freightOrderCounts/dispatched}" class="kpiCardBigNumber kpiNumberOrange" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardGreen">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://accept" class="kpiCardIcon kpiIconGreen" />
+                    <Text text="Delivered" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/freightOrderCounts/delivered}" class="kpiCardBigNumber kpiNumberGreen" />
+                </VBox>
+              </VBox>
             </HBox>
 
             <Table
@@ -464,18 +610,42 @@
         <content>
           <VBox class="sectionCard">
             <HBox wrap="Wrap" class="cardRow kpiRow">
-              <Panel headerText="Total Passes" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/gatePassCounts/total}" /></content>
-              </Panel>
-              <Panel headerText="Trucks OUT" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/gatePassCounts/out}" state="Warning" /></content>
-              </Panel>
-              <Panel headerText="Trucks IN" class="metricCard kpiCard">
-                <content><ObjectNumber number="{appState>/gatePassCounts/in}" state="Success" /></content>
-              </Panel>
-              <Panel headerText="Pending" class="metricCard kpiCard" visible="{= ${appState>/gatePassCounts/pending} > 0 }">
-                <content><ObjectNumber number="{appState>/gatePassCounts/pending}" state="Error" /></content>
-              </Panel>
+              <VBox class="metricCard kpiCard kpiCardNeutral">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://log" class="kpiCardIcon kpiIconNeutral" />
+                    <Text text="Total Passes" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/gatePassCounts/total}" class="kpiCardBigNumber" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardOrange">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://arrow-right" class="kpiCardIcon kpiIconOrange" />
+                    <Text text="Trucks OUT" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/gatePassCounts/out}" class="kpiCardBigNumber kpiNumberOrange" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardGreen">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://arrow-left" class="kpiCardIcon kpiIconGreen" />
+                    <Text text="Trucks IN" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/gatePassCounts/in}" class="kpiCardBigNumber kpiNumberGreen" />
+                </VBox>
+              </VBox>
+              <VBox class="metricCard kpiCard kpiCardRed">
+                <VBox class="kpiCardContent">
+                  <HBox alignItems="Center" class="kpiCardHeader">
+                    <core:Icon src="sap-icon://pending" class="kpiCardIcon kpiIconRed" />
+                    <Text text="Pending" class="kpiCardLabel sapUiSmallMarginBegin" />
+                  </HBox>
+                  <Text text="{appState>/gatePassCounts/pending}" class="{= ${appState>/gatePassCounts/pending} > 0 ? 'kpiCardBigNumber kpiNumberRed' : 'kpiCardBigNumber' }" />
+                </VBox>
+              </VBox>
             </HBox>
 
             <Table

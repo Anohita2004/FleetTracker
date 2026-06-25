@@ -19,6 +19,8 @@ sap.ui.define([
       this._clientUpdateLatencyMs = [];
       this._viewModel = this.getOwnerComponent().getModel("appState");
       this._adminCsrfToken = null;
+      this._allDrivers = null;
+      this._allTrucks = null;
       this._addDriverDialog = null;
       this._addTruckDialog = null;
       this._assignDriverDialog = null;
@@ -830,6 +832,7 @@ sap.ui.define([
             assignedDriverName: driverMap[truck.assignedDriver_ID] || "-"
           });
         });
+        this._allTrucks = enriched;
         this._viewModel.setProperty("/trucks", enriched);
         this._viewModel.setProperty("/fleetSummary", {
           total: enriched.length,
@@ -1256,6 +1259,28 @@ sap.ui.define([
       }
     },
 
+    onDriverSearch: function (oEvent) {
+      var query = (oEvent.getParameter("newValue") || "").toLowerCase().trim();
+      var source = this._allDrivers || this._viewModel.getProperty("/drivers") || [];
+      var filtered = !query ? source : source.filter(function (d) {
+        return (d.name || "").toLowerCase().indexOf(query) !== -1 ||
+               (d.email || "").toLowerCase().indexOf(query) !== -1 ||
+               (d.licenseNumber || "").toLowerCase().indexOf(query) !== -1;
+      });
+      this._viewModel.setProperty("/drivers", filtered);
+    },
+
+    onTruckSearch: function (oEvent) {
+      var query = (oEvent.getParameter("newValue") || "").toLowerCase().trim();
+      var source = this._allTrucks || this._viewModel.getProperty("/trucks") || [];
+      var filtered = !query ? source : source.filter(function (t) {
+        return (t.truckNumber || "").toLowerCase().indexOf(query) !== -1 ||
+               (t.model || "").toLowerCase().indexOf(query) !== -1 ||
+               (t.registrationNumber || "").toLowerCase().indexOf(query) !== -1;
+      });
+      this._viewModel.setProperty("/trucks", filtered);
+    },
+
     _checkAuthStatus: async function () {
       this._setView("loading", null);
       this._viewModel.setProperty("/authError", "");
@@ -1356,7 +1381,14 @@ sap.ui.define([
         const drivers = rawDrivers.map(function (driver) {
           return this._normalizeDriver(driver);
         }.bind(this));
+        this._allDrivers = drivers;
         this._viewModel.setProperty("/drivers", drivers);
+        this._viewModel.setProperty("/driverSummary", {
+          total: drivers.length,
+          active: drivers.filter(function (d) { return d.isActive; }).length,
+          onTrip: drivers.filter(function (d) { return d.activityStatus === "On Trip"; }).length,
+          inactive: drivers.filter(function (d) { return !d.isActive; }).length
+        });
       } catch (error) {
         MessageBox.error(error.message || "Unable to load drivers");
       }
@@ -1541,6 +1573,15 @@ sap.ui.define([
           minute: "2-digit"
         });
       } catch (e) { return String(sDate); }
+    },
+
+    formatInitials: function (name) {
+      if (!name) { return "?"; }
+      var parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
     },
 
     _normalizeTruck: function (truck) {
