@@ -406,6 +406,213 @@ module.exports = cds.service.impl(function () {
     return readCurrentMetrics();
   });
 
+  // ===== DRIVER SELF-REGISTRATION HANDLERS =====
+
+  // Validate password strength
+  const isPasswordStrong = (password) => {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    const minLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+  };
+
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Driver registration action (public, no auth required)
+  this.on("registerDriver", async (req) => {
+    try {
+      const { fullName, email, phone, licenseNumber, licenseExpiry, vehicleId, password, confirmPassword, termsAccepted } = req.data;
+      const db = cds.tx(req);
+
+      // Validation
+      if (!fullName || !email || !phone || !licenseNumber || !licenseExpiry || !vehicleId || !password) {
+        return req.reject(400, "All fields are required");
+      }
+
+      if (!termsAccepted) {
+        return req.reject(400, "You must accept Terms & Conditions to register");
+      }
+
+      if (!isValidEmail(email)) {
+        return req.reject(400, "Invalid email format");
+      }
+
+      if (password !== confirmPassword) {
+        return req.reject(400, "Passwords do not match");
+      }
+
+      if (!isPasswordStrong(password)) {
+        return req.reject(400, "Password must be at least 8 characters with uppercase, lowercase, number, and special character");
+      }
+
+      // Check if email already exists
+      const existingDriver = await db.run(
+        SELECT.one.from("tracker.Drivers").columns("ID", "email").where({ email: normalizeEmail(email) })
+      );
+
+      if (existingDriver) {
+        return req.reject(409, "Email already registered. Please use a different email or login.");
+      }
+
+      // Hash the password
+      const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+
+      // Create new driver record with PENDING status
+      const driverId = cds.utils.uuid();
+      const newDriver = {
+        ID: driverId,
+        name: fullName,
+        email: normalizeEmail(email),
+        passwordHash: passwordHash,
+        phone: phone,
+        licenseNumber: licenseNumber,
+        licenseExpiry: licenseExpiry,
+        vehicleId: vehicleId,
+        registrationStatus: "PENDING",
+        isActive: false,
+        admin_ID: null  // Will be assigned by admin during approval
+      };
+
+      await db.run(INSERT.into("tracker.Drivers").entries(newDriver));
+
+      // TODO: Send email notification to admins about new pending registration
+      // TODO: Create audit log entry
+
+      return {
+        success: true,
+        message: "Registration submitted successfully. Please wait for admin approval.",
+        registrationId: driverId,
+        email: email
+      };
+    } catch (error) {
+      console.error("Registration error:", error);
+      return req.reject(500, "Registration failed: " + error.message);
+    }
+  });
+
+  // Get pending registrations for admin
+  this.on("getPendingRegistrations", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can view pending registrations");
+
+    try {
+      const db = cds.tx(req);
+      const pendingDrivers = await db.run(
+        SELECT.from("tracker.Drivers")
+          .columns("ID", "name", "email", "phone", "licenseNumber", "licenseExpiry", "vehicleId", "documentUrl", "registrationStatus", "createdAt", "createdBy")
+          .where({ registrationStatus: "PENDING" })
+          .orderBy("createdAt desc")
+      );
+
+      return pendingDrivers.map(driver => ({
+        ID: driver.ID,
+        fullName: driver.name,
+        email: driver.email,
+        phone: driver.phone,
+        licenseNumber: driver.licenseNumber,
+        licenseExpiry: driver.licenseExpiry,
+        vehicleId: driver.vehicleId,
+        documentUrl: driver.documentUrl,
+        registrationStatus: driver.registrationStatus,
+        createdAt: driver.createdAt,
+        submittedBy: driver.createdBy
+      }));
+    } catch (error) {
+      console.error("Error fetching pending registrations:", error);
+      return req.reject(500, "Failed to fetch pending registrations: " + error.message);
+    }
+  });
+
+  // Approve driver registration
+  this.on("approveDriverRegistration", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can approve registrations");
+
+    try {
+      const { driverId } = req.data;
+      if (!driverId) return req.reject(400, "driverId is required");
+
+      const db = cds.tx(req);
+      const driver = await db.run(
+        SELECT.one.from("tracker.Drivers").columns("ID", "registrationStatus").where({ ID: driverId })
+      );
+
+      if (!driver) return req.reject(404, "Driver not found");
+
+      if (driver.registrationStatus !== "PENDING") {
+        return req.reject(400, "Only PENDING registrations can be approved");
+      }
+
+      // Update driver status to APPROVED and make active
+      await db.run(
+        UPDATE("tracker.Drivers")
+          .set({
+            registrationStatus: "APPROVED",
+            isActive: true,
+            admin_ID: admin.ID
+          })
+          .where({ ID: driverId })
+      );
+
+      // TODO: Send email notification to driver about approval
+      // TODO: Create audit log entry
+
+      const approvedDriver = await db.run(
+        SELECT.one.from("tracker.Drivers").columns(...safeDriverColumns).where({ ID: driverId })
+      );
+
+      return approvedDriver;
+    } catch (error) {
+      console.error("Approval error:", error);
+      return req.reject(500, "Approval failed: " + error.message);
+    }
+  });
+
+  // Reject driver registration
+  this.on("rejectDriverRegistration", async (req) => {
+    const admin = await ensureAdminProfile(req);
+    if (!admin) return req.reject(403, "Only fleet admins can reject registrations");
+
+    try {
+      const { driverId, reason } = req.data;
+      if (!driverId) return req.reject(400, "driverId is required");
+      if (!reason) return req.reject(400, "Rejection reason is required");
+
+      const db = cds.tx(req);
+      const driver = await db.run(
+        SELECT.one.from("tracker.Drivers").columns("ID", "registrationStatus").where({ ID: driverId })
+      );
+
+      if (!driver) return req.reject(404, "Driver not found");
+
+      if (driver.registrationStatus !== "PENDING") {
+        return req.reject(400, "Only PENDING registrations can be rejected");
+      }
+
+      // Update driver status to REJECTED
+      await db.run(
+        UPDATE("tracker.Drivers")
+          .set({ registrationStatus: "REJECTED" })
+          .where({ ID: driverId })
+      );
+
+      // TODO: Send email notification to driver about rejection with reason
+      // TODO: Create audit log entry with rejection reason
+
+      return `Driver registration rejected. Reason: ${reason}`;
+    } catch (error) {
+      console.error("Rejection error:", error);
+      return req.reject(500, "Rejection failed: " + error.message);
+    }
+  });
+
   const captureSnapshotIfDue = async (forceSnapshot) => {
     const now = Date.now();
     const shouldCapture = forceSnapshot || !lastSnapshotAt || now - lastSnapshotAt >= SNAPSHOT_INTERVAL_MS;

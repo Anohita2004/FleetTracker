@@ -99,6 +99,55 @@ service TrackerService @(path : '/tracker') {
 
   @requires: 'FleetAdmin'
   function metrics() returns TrackerMetrics;
+
+  // Driver Self-Registration Endpoints
+  type RegistrationRequest {
+    fullName      : String(120);
+    email         : String(255);
+    phone         : String(40);
+    licenseNumber : String(80);
+    licenseExpiry : Date;
+    vehicleId     : String(80);
+    password      : String(255);
+    confirmPassword : String(255);
+    termsAccepted : Boolean;
+  }
+
+  type RegistrationResponse {
+    success        : Boolean;
+    message        : String;
+    registrationId : UUID;
+    email          : String;
+  }
+
+  type PendingRegistration {
+    ID            : UUID;
+    fullName      : String(120);
+    email         : String(255);
+    phone         : String(40);
+    licenseNumber : String(80);
+    licenseExpiry : Date;
+    vehicleId     : String(80);
+    documentUrl   : String(500);
+    registrationStatus : String(20);
+    createdAt     : Timestamp;
+    submittedBy   : String(255);
+  }
+
+  // Public endpoint for driver registration (no auth required)
+  action registerDriver(req : RegistrationRequest) returns RegistrationResponse;
+
+  // Admin endpoint to approve pending registrations
+  @requires: 'FleetAdmin'
+  action approveDriverRegistration(driverId : UUID) returns Drivers;
+
+  // Admin endpoint to reject pending registrations
+  @requires: 'FleetAdmin'
+  action rejectDriverRegistration(driverId : UUID, reason : String) returns String;
+
+  // Admin endpoint to get pending registrations
+  @requires: 'FleetAdmin'
+  function getPendingRegistrations() returns array of PendingRegistration;
 }
 
 type TrackerMetrics {
